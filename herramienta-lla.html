@@ -2160,11 +2160,7 @@ body.mode-comunicado .doc-comunicado-wrap { display: flex; flex-direction: colum
         <div class="admin-users-list" id="adminUsersList"></div>
       </div>
 
-      <div class="admin-dirty-banner" id="adminDirtyBanner">
-        <strong>⚠ Cambios pendientes de deploy</strong><br>
-        Modificaste la lista. Para que los cambios surtan efecto, copiá el snippet actualizado y pegálo en <code>index.html</code> reemplazando el array <code>AUTHORIZED_USERS</code>, después re-deploya en Netlify.
-        <button class="admin-btn-primary" style="margin-top:10px" onclick="adminCopyFullSnippet()">📋 Copiar array completo actualizado</button>
-      </div>
+      <div class="admin-dirty-banner" id="adminDirtyBanner" style="display:none"></div>
     </div>
 
     <!-- ▾ TAB: ACTIVIDAD ▾ -->
@@ -2209,6 +2205,22 @@ body.mode-comunicado .doc-comunicado-wrap { display: flex; flex-direction: colum
           <div>Sesión inicia: <strong id="infoSince" style="color:#fff">—</strong></div>
           <div>Dispositivo: <strong id="infoDevice" style="color:#fff">—</strong></div>
         </div>
+      </div>
+
+      <div class="admin-section">
+        <div class="admin-section-title">🔑 GitHub — auto-publicación de referentes</div>
+        <div style="font-size:11px;line-height:1.6;color:rgba(255,255,255,0.7);margin-bottom:10px">
+          Para que al generar un código se publique automáticamente en GitHub (sin tocar código), pegá acá tu <strong>Personal Access Token</strong>.<br>
+          <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" style="color:#a66dd4;text-decoration:underline">Crear PAT →</a>
+          <span style="display:block;margin-top:6px;font-size:10px;color:rgba(255,255,255,0.5)">Permisos: solo el repo <code>lla-rio-negro</code> · <code>Contents: Read and write</code></span>
+        </div>
+        <input type="password" id="adminGhPat" class="admin-input" placeholder="ghp_... o github_pat_..." autocomplete="off" value="">
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="admin-btn-primary" onclick="adminSaveGhPat()" style="flex:1">💾 Guardar</button>
+          <button class="admin-btn-ghost" onclick="adminTestGhPat()" style="flex:1">🔍 Probar</button>
+          <button class="admin-btn-ghost admin-btn-danger" onclick="adminClearGhPat()" title="Eliminar token">🗑</button>
+        </div>
+        <div id="adminGhPatStatus" style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.6)"></div>
       </div>
 
       <div class="admin-section">
@@ -2602,10 +2614,90 @@ Asimismo, se adjunta como Anexo I el desarrollo de fundamentos técnicos, juríd
      3. Agregá { name, hash } al array AUTHORIZED_USERS
      4. Mandale el código al referente por canal privado (WhatsApp, Signal, etc.)
    ════════════════════════════════════════════════════════════════ */
-const AUTHORIZED_USERS = [
+// Fallback embebido — se reemplaza al cargar users.json del repo
+let AUTHORIZED_USERS = [
   { name: 'Josias Amaya', hash: '6e87d83209d80f113740c333ff30eee50fd146bb46cc9cbac3b137ed738c80ed', role: 'admin' },
   { name: 'Luis Carilao', hash: '5a5655498368e7f4de5df71c62da4a7827bc86415ad3449f25b4b3977be27105' }
 ];
+
+// Promesa que resuelve cuando users.json terminó de cargar (o falla y usa fallback)
+let _usersReadyResolve;
+const usersReady = new Promise(r => { _usersReadyResolve = r; });
+
+async function loadUsersFromRepo() {
+  try {
+    const res = await fetch('users.json?ts=' + Date.now(), { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.users) && data.users.length) {
+        AUTHORIZED_USERS = data.users;
+      }
+    }
+  } catch (e) { /* silencioso: usa fallback embebido */ }
+  _usersReadyResolve();
+}
+loadUsersFromRepo();
+
+// ─── GitHub API: auto-push de nuevos referentes ───
+const GH_REPO = 'josiasbc4/lla-rio-negro';
+const GH_USERS_PATH = 'lla-deploy/users.json';
+const GH_PAT_KEY = 'lla_gh_pat_v1';
+
+function getGitHubPAT() { return localStorage.getItem(GH_PAT_KEY) || ''; }
+function setGitHubPAT(token) {
+  if (token) localStorage.setItem(GH_PAT_KEY, token);
+  else localStorage.removeItem(GH_PAT_KEY);
+}
+
+function b64EncodeUtf8(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function b64DecodeUtf8(b64) {
+  return decodeURIComponent(escape(atob(b64.replace(/\n/g, ''))));
+}
+
+async function ghPushUser(user) {
+  const token = getGitHubPAT();
+  if (!token) throw new Error('Falta configurar el Personal Access Token de GitHub en Mantenimiento → GitHub.');
+  const apiUrl = `https://api.github.com/repos/${GH_REPO}/contents/${GH_USERS_PATH}`;
+  const headers = {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
+  // 1. Leer estado actual del archivo
+  const getRes = await fetch(apiUrl, { headers });
+  if (!getRes.ok) {
+    const t = await getRes.text().catch(() => '');
+    throw new Error('No se pudo leer users.json del repo (' + getRes.status + '). ' + t.slice(0, 200));
+  }
+  const fileData = await getRes.json();
+  const current = JSON.parse(b64DecodeUtf8(fileData.content));
+  if (!Array.isArray(current.users)) current.users = [];
+  if (current.users.some(u => u.name.toLowerCase() === user.name.toLowerCase())) {
+    throw new Error('Ya existe un referente con ese nombre en el repo.');
+  }
+  current.users.push(user);
+  current.updatedAt = new Date().toISOString();
+  current.version = (current.version || 1);
+  const newContent = JSON.stringify(current, null, 2) + '\n';
+  // 2. Commit
+  const putRes = await fetch(apiUrl, {
+    method: 'PUT',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message: 'admin: agregar referente ' + user.name,
+      content: b64EncodeUtf8(newContent),
+      sha: fileData.sha
+    })
+  });
+  if (!putRes.ok) {
+    const errData = await putRes.json().catch(() => ({}));
+    throw new Error('Push falló: ' + (errData.message || putRes.status));
+  }
+  return true;
+}
+
 const AUTH_KEY = 'lla_auth_v1';
 const AUTH_TTL_DAYS = 30;
 let CURRENT_USER = null;
@@ -2627,6 +2719,7 @@ async function sha256(str) {
 }
 
 async function tryAuthenticate(code) {
+  await usersReady; // esperar fetch de users.json
   const h = await sha256(code);
   const user = AUTHORIZED_USERS.find(u => u.hash === h) || null;
   // Si es admin, auto-registramos su propio código en el registry local
@@ -2728,7 +2821,7 @@ function switchAdminTab(tab) {
   if (pane) pane.classList.add('active');
   if (tab === 'actividad') renderAdminActivity();
   if (tab === 'usuarios') renderAdminUsers();
-  if (tab === 'mantenimiento') renderAdminInfo();
+  if (tab === 'mantenimiento') { renderAdminInfo(); adminRefreshGhPatStatus(); }
 }
 
 /* ─── TAB: USUARIOS ─── */
@@ -2932,27 +3025,50 @@ async function adminGenerateCode() {
     code = 'LLA-' + primer + '-' + randomSuffix(6);
   }
   const hash = await sha256(code);
+  const userObj = { name, hash };
   // Agregar a memoria + registry
-  AUTHORIZED_USERS.push({ name, hash });
+  AUTHORIZED_USERS.push(userObj);
   registrySet(name, { code, addedAt: Date.now(), source: 'admin_panel' });
   codeVisibility[name] = true;
-  markDirty();
   renderAdminUsers();
   // Limpiar inputs
   document.getElementById('adminNewName').value = '';
   document.getElementById('adminNewCustomCode').value = '';
 
   const msgWA = `Hola ${name.split(' ')[0]}, te paso tu código de acceso a la Herramienta Partidaria LLA:\n\n🔐 ${code}\n\nAcceso: ${location.origin}${location.pathname === '/' ? '' : location.pathname}\n\nCada código es personal e intransferible — el uso queda registrado. Guardalo en lugar seguro y no lo compartas.`;
+  const escMsgWA = msgWA.replace(/`/g,'\\`').replace(/\$/g,'\\$');
+
+  // Render preliminar con el código + estado "pushing"
+  const hasPAT = !!getGitHubPAT();
   out.innerHTML = `
     <div class="admin-output" style="border-color:rgba(34,197,94,0.4)">
-      <strong style="color:#86efac">✓ ${name} agregado a la lista</strong><br><br>
+      <strong style="color:#86efac">✓ ${name} — código generado</strong><br><br>
       <strong>Código (mandar al referente):</strong><br>
-      ${code}
+      <span style="font-family:monospace;font-size:14px;color:#fcd34d">${code}</span>
       <button class="admin-btn-ghost" style="margin-top:6px" onclick="copyToClipboard('${code}', this)">📋 Copiar código</button>
     </div>
-    <button class="admin-btn-primary" style="margin-top:10px" onclick="copyToClipboard(${JSON.stringify(msgWA)}, this, 'Mensaje WhatsApp copiado')">💬 Copiar mensaje WhatsApp para enviar</button>
-    <div style="margin-top:10px;font-size:10px;color:rgba(255,255,255,0.55)">⚠ Para que pueda entrar realmente, copiá el snippet completo desde el banner de abajo y deployá.</div>
+    <div id="adminPushStatus" style="margin-top:10px;padding:10px 12px;border-radius:8px;font-size:11px;line-height:1.5;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.35);color:#c7d2fe">
+      ${hasPAT ? '⏳ Publicando en GitHub…' : '⚠ No hay PAT de GitHub configurado. Andá a <strong>Mantenimiento → GitHub</strong> para configurarlo y poder publicar automáticamente.'}
+    </div>
+    <button class="admin-btn-primary" style="margin-top:10px" onclick="copyToClipboard(\`${escMsgWA}\`, this, 'Mensaje WhatsApp copiado')">💬 Copiar mensaje WhatsApp para enviar</button>
   `;
+
+  // Si hay PAT, intentamos pushear en background
+  if (hasPAT) {
+    const statusEl = document.getElementById('adminPushStatus');
+    try {
+      await ghPushUser(userObj);
+      statusEl.style.background = 'rgba(34,197,94,0.12)';
+      statusEl.style.borderColor = 'rgba(34,197,94,0.4)';
+      statusEl.style.color = '#86efac';
+      statusEl.innerHTML = '✓ <strong>Publicado en GitHub.</strong> En ~30 segundos el referente puede entrar con su código.';
+    } catch (e) {
+      statusEl.style.background = 'rgba(248,113,113,0.12)';
+      statusEl.style.borderColor = 'rgba(248,113,113,0.4)';
+      statusEl.style.color = '#fca5a5';
+      statusEl.innerHTML = '✗ <strong>No se pudo publicar:</strong> ' + escapeHtml(e.message);
+    }
+  }
 }
 
 function copyToClipboard(text, btn, customMsg) {
@@ -3084,6 +3200,69 @@ function adminClearActivity() {
   showToast('✓ Histórico de actividad limpiado', 'info');
 }
 
+// ─── GitHub PAT management ───
+function adminSaveGhPat() {
+  const input = document.getElementById('adminGhPat');
+  const status = document.getElementById('adminGhPatStatus');
+  const token = input.value.trim();
+  if (!token) {
+    status.innerHTML = '<span style="color:#fca5a5">⚠ Pegá un token primero</span>';
+    return;
+  }
+  if (!token.match(/^(ghp_|github_pat_)/)) {
+    status.innerHTML = '<span style="color:#fca5a5">⚠ No parece un token válido (debe empezar con <code>ghp_</code> o <code>github_pat_</code>)</span>';
+    return;
+  }
+  setGitHubPAT(token);
+  input.value = '';
+  status.innerHTML = '<span style="color:#86efac">✓ Token guardado en este navegador. Probá con "🔍 Probar" para verificar permisos.</span>';
+}
+
+async function adminTestGhPat() {
+  const status = document.getElementById('adminGhPatStatus');
+  const token = getGitHubPAT();
+  if (!token) {
+    status.innerHTML = '<span style="color:#fca5a5">⚠ No hay token guardado. Pegá uno y tocá Guardar.</span>';
+    return;
+  }
+  status.innerHTML = '<span style="color:#c7d2fe">⏳ Probando…</span>';
+  try {
+    const res = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${GH_USERS_PATH}`, {
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Accept': 'application/vnd.github+json'
+      }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const decoded = JSON.parse(b64DecodeUtf8(data.content));
+      const count = (decoded.users || []).length;
+      status.innerHTML = `<span style="color:#86efac">✓ Token funciona. ${count} referentes en el repo.</span>`;
+    } else {
+      const t = await res.text().catch(() => '');
+      status.innerHTML = `<span style="color:#fca5a5">✗ ${res.status} — ${escapeHtml(t.slice(0,150))}</span>`;
+    }
+  } catch (e) {
+    status.innerHTML = `<span style="color:#fca5a5">✗ ${escapeHtml(e.message)}</span>`;
+  }
+}
+
+function adminClearGhPat() {
+  if (!confirm('¿Eliminar el Personal Access Token guardado?')) return;
+  setGitHubPAT('');
+  const status = document.getElementById('adminGhPatStatus');
+  if (status) status.innerHTML = '<span style="color:rgba(255,255,255,0.55)">Token eliminado.</span>';
+}
+
+function adminRefreshGhPatStatus() {
+  const status = document.getElementById('adminGhPatStatus');
+  if (!status) return;
+  const has = !!getGitHubPAT();
+  status.innerHTML = has
+    ? '<span style="color:#86efac">✓ Hay un token guardado en este navegador.</span>'
+    : '<span style="color:rgba(255,255,255,0.55)">Sin token configurado.</span>';
+}
+
 function adminWipeAll() {
   if (!confirm('⚠ ATENCIÓN: vas a borrar TODO (borrador actual, histórico, sesión). La próxima vez tendrás que ingresar tu código de acceso de nuevo. ¿Continuar?')) return;
   localStorage.clear();
@@ -3130,7 +3309,8 @@ async function handleLoginSubmit(e) {
 
 // Bootstrap: si ya hay sesión persistida, saltar el login
 (function bootstrapAuth() {
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
+    await usersReady; // esperar a que users.json cargue antes de validar sesión
     const persisted = readPersistedAuth();
     if (persisted) {
       showApp(persisted);
