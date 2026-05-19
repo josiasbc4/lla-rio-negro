@@ -3705,13 +3705,14 @@ function applyStagger(container, opts) {
 /* ════════════════════════════════════════════════════════════════
    TOAST DE NOTIFICACIÓN
    ════════════════════════════════════════════════════════════════ */
-function showToast(message, type, duration) {
+function showToast(message, type, duration, onClick) {
   type = type || 'success';
   duration = duration || 3500;
   const container = document.getElementById('toastContainer');
   if (!container) return;
   const t = document.createElement('div');
   t.className = 'toast ' + type;
+  if (onClick) t.style.cursor = 'pointer';
   const icons = { success: '✓', info: 'i', error: '!' };
   t.innerHTML =
     '<div class="toast-icon">' + (icons[type] || '✓') + '</div>' +
@@ -3722,7 +3723,10 @@ function showToast(message, type, duration) {
     t.classList.add('exit');
     setTimeout(() => t.remove(), 300);
   };
-  t.querySelector('.toast-close').addEventListener('click', remove);
+  t.querySelector('.toast-close').addEventListener('click', (e) => { e.stopPropagation(); remove(); });
+  if (onClick) {
+    t.addEventListener('click', () => { onClick(); remove(); });
+  }
   setTimeout(remove, duration);
 }
 
@@ -4913,10 +4917,38 @@ exportJPG = function() {
   updateBodyCounter();
   bindHistory();
   applyZoom();
-  // Registro de Service Worker para PWA / offline
+  // Registro de Service Worker para PWA / offline + auto-update
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW no registrado:', err));
+    window.addEventListener('load', async () => {
+      try {
+        const reg = await navigator.serviceWorker.register('sw.js');
+        // Detectar cuando hay un SW nuevo esperando para activarse
+        reg.addEventListener('updatefound', () => {
+          const newSW = reg.installing;
+          if (!newSW) return;
+          newSW.addEventListener('statechange', () => {
+            if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+              // Hay versión nueva esperando → ofrecer recargar
+              if (typeof showToast === 'function') {
+                showToast('🔄 Nueva versión disponible — tocá acá para actualizar', 'info', 30000, () => {
+                  newSW.postMessage('SKIP_WAITING');
+                });
+              }
+            }
+          });
+        });
+        // Cuando el nuevo SW toma control, recargar la página
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (refreshing) return;
+          refreshing = true;
+          location.reload();
+        });
+        // Check periódico cada 60 min (por si el usuario tiene la app abierta mucho rato)
+        setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
+      } catch (err) {
+        console.warn('SW no registrado:', err);
+      }
     });
   }
   window.addEventListener('resize', () => applyZoom());
