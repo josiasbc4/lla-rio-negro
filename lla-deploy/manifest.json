@@ -1,0 +1,27 @@
+{
+  "name": "Herramienta Partidaria LLA - Membrete",
+  "short_name": "LLA Membrete",
+  "description": "Herramienta oficial de La Libertad Avanza para generar membretes personalizados por ciudad de Río Negro",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0516",
+  "theme_color": "#0a0516",
+  "lang": "es-AR",
+  "categories": ["productivity", "business", "government"],
+  "icons": [
+    {
+      "src": "LLA BLANCO.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "LLA VIOLETA.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

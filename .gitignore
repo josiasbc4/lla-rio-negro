@@ -1,0 +1,23 @@
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+*.bak
+
+# Claude / IDE
+.claude/
+
+# Backups y working files
+herramienta-lla.html.bak
+membrete_unpacked/
+
+# Recursos pesados de referencia (no necesarios para el deploy)
+Manual de Marca LLA.pdf
+Membrete LLA.docx
+
+# Admin / no subir a producción
+generar-codigo.html
+
+# Dev server
+node_modules/
+*.log
