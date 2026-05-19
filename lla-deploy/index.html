@@ -1777,6 +1777,77 @@ body.exporting .doc-text-block {
 body.mode-membrete .mode-only-membrete { display: block; }
 body.mode-comunicado .mode-only-comunicado { display: block; }
 
+/* Botón Instagram (solo visible en comunicado) */
+.btn-instagram { display: none !important; }
+body.mode-comunicado .btn-instagram { display: inline-flex !important; }
+.btn-instagram {
+  background: linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%) !important;
+  color: #fff !important;
+  border: none !important;
+}
+.btn-instagram:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(253,29,29,0.35); }
+
+/* Render offscreen del Instagram (1080×1440) */
+.ig-render {
+  position: fixed; left: -20000px; top: 0;
+  width: 1080px; height: 1440px;
+  background: #fff;
+  font-family: 'Montserrat', sans-serif;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.ig-header {
+  background: #371959;
+  padding: 50px 64px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.ig-label {
+  font-size: 44px; font-weight: 700;
+  color: #fff; text-transform: uppercase;
+  letter-spacing: 0.08em; line-height: 1;
+}
+.ig-brand { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.ig-brand img { height: 110px; width: auto; display: block; }
+.ig-brand-city {
+  font-size: 22px; font-weight: 700; color: #fff;
+  text-transform: uppercase; letter-spacing: 0.16em;
+  text-align: center;
+}
+.ig-body {
+  flex: 1;
+  padding: 64px 80px 48px;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.ig-headline {
+  font-size: 48px; font-weight: 800; line-height: 1.18;
+  color: #1a1a1a;
+  margin-bottom: 38px;
+  letter-spacing: -0.005em;
+}
+.ig-text {
+  font-size: 26px; line-height: 1.55;
+  color: #1a1a1a; text-align: justify;
+  white-space: pre-wrap;
+  flex: 1;
+}
+.ig-links {
+  margin-top: 28px;
+  font-size: 22px; font-weight: 700; color: #1a1a1a;
+  line-height: 1.5;
+}
+.ig-links a { color: #371959; word-break: break-all; font-weight: 500; }
+.ig-footer {
+  text-align: center;
+  padding: 32px 80px 56px;
+  flex-shrink: 0;
+}
+.ig-footer img {
+  height: 120px; width: auto; opacity: 1;
+  display: inline-block;
+}
+
 /* Wrapper de los dos documentos en el preview */
 .doc-membrete-wrap,
 .doc-comunicado-wrap { display: none; }
@@ -2104,6 +2175,10 @@ body.mode-comunicado .doc-comunicado-wrap { display: flex; flex-direction: colum
     <button class="btn btn-glass" id="shareBtn" onclick="shareDocument()" aria-label="Compartir" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
       <span class="btn-label">Compartir</span>
+    </button>
+    <button class="btn btn-glass btn-instagram" onclick="exportInstagram()" aria-label="Exportar Instagram 1080×1440" title="Generar imagen 1080×1440 para Instagram">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
+      <span class="btn-label">Instagram</span>
     </button>
     <button class="btn btn-glass" onclick="exportJPG()" aria-label="Exportar JPG">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12l3 3 5-5"/></svg>
@@ -2562,6 +2637,25 @@ Asimismo, se adjunta como Anexo I el desarrollo de fundamentos técnicos, juríd
         </div>
 
       </div><!-- /doc-comunicado-wrap -->
+
+      <!-- ══ RENDER INSTAGRAM 1080x1440 (offscreen, solo para export) ══ -->
+      <div class="ig-render" id="igRender" aria-hidden="true">
+        <div class="ig-header">
+          <div class="ig-label">Comunicado<br>de prensa</div>
+          <div class="ig-brand">
+            <img src="LLA BLANCO.png" alt="La Libertad Avanza">
+            <div class="ig-brand-city" id="igCityLabel">RÍO NEGRO</div>
+          </div>
+        </div>
+        <div class="ig-body">
+          <div class="ig-headline" id="igTitulo">Título del comunicado</div>
+          <div class="ig-text" id="igCuerpo"></div>
+          <div class="ig-links" id="igLinks" style="display:none"></div>
+        </div>
+        <div class="ig-footer">
+          <img src="LLA VIOLETA.png" alt="La Libertad Avanza">
+        </div>
+      </div>
 
     </div>
     </div><!-- /doc-scale-wrapper -->
@@ -4240,6 +4334,79 @@ async function exportPDF() {
   hideLoading();
 }
 
+// ═══════════════ EXPORT INSTAGRAM 1080×1440 ═══════════════
+async function exportInstagram() {
+  // Validar que estamos en modo comunicado
+  if (currentMode !== 'comunicado') {
+    showToast('Solo disponible en modo Comunicado', 'error', 3000);
+    return;
+  }
+  const titulo = document.getElementById('comunicadoTitulo').value.trim();
+  const cuerpo = document.getElementById('comunicadoCuerpo').value.trim();
+  if (!titulo || !cuerpo) {
+    showToast('Completá título y cuerpo antes de exportar', 'error', 3000);
+    return;
+  }
+
+  showLoading('Generando imagen Instagram 1080×1440...');
+  try {
+    // 1. Poblar el render offscreen con los valores actuales
+    const city = (document.getElementById('cityInput').value || 'RÍO NEGRO').toUpperCase();
+    const linkLabel = document.getElementById('comunicadoLinkLabel').value.trim();
+    const linkUrl = document.getElementById('comunicadoLinkUrl').value.trim();
+
+    document.getElementById('igCityLabel').textContent = city;
+    document.getElementById('igTitulo').textContent = titulo;
+    document.getElementById('igCuerpo').textContent = cuerpo;
+    const linksEl = document.getElementById('igLinks');
+    if (linkLabel || linkUrl) {
+      linksEl.style.display = '';
+      linksEl.innerHTML = (linkLabel ? '<strong>' + escapeHtml(linkLabel) + '</strong><br>' : '') +
+        (linkUrl ? '<span style="color:#371959;">' + escapeHtml(linkUrl) + '</span>' : '');
+    } else {
+      linksEl.style.display = 'none';
+    }
+
+    // 2. Esperar fuentes + un tick
+    await ensureFontsLoaded();
+    await new Promise(r => setTimeout(r, 200));
+
+    // 3. Capturar con html2canvas
+    const el = document.getElementById('igRender');
+    const canvas = await html2canvas(el, {
+      width: 1080,
+      height: 1440,
+      scale: 1,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false
+    });
+
+    // 4. Descargar como PNG
+    const dataUrl = canvas.toDataURL('image/png', 1.0);
+    const cityClean = (document.getElementById('cityInput').value || 'RioNegro').replace(/\s+/g,'-');
+    const filename = 'Comunicado-IG-' + cityClean + '.png';
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = dataUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // 5. Log activity
+    if (typeof logActivity === 'function') {
+      logActivity('export_instagram', { city: document.getElementById('cityInput').value, titulo: titulo.slice(0, 80) });
+    }
+
+    showToast('✓ Imagen Instagram lista (1080×1440)', 'success', 3000);
+  } catch (e) {
+    console.error('Export IG falló:', e);
+    showToast('Error al generar la imagen: ' + e.message, 'error', 4000);
+  } finally {
+    hideLoading();
+  }
+}
+
 async function exportJPG() {
   showLoading('Generando imagen JPG...');
   document.body.classList.add('exporting');
@@ -4459,7 +4626,8 @@ function renderDraftsList() {
     const d = drafts[id];
     const active = id === activeId;
     const city = (d.state && d.state.cityInput) || '—';
-    const updated = d.updatedAt ? formatRelativeTime(d.updatedAt) : '—';
+    const updatedRel = d.updatedAt ? formatRelativeTime(d.updatedAt) : '—';
+    const updatedAbs = d.updatedAt ? formatAbsoluteDate(d.updatedAt) : '';
     const isCom = d.state && d.state._mode === 'comunicado';
     const bodyText = isCom ? (d.state.comunicadoCuerpo || '') : (d.state && d.state.bodyText) || '';
     const bodyChars = bodyText.length;
@@ -4475,7 +4643,7 @@ function renderDraftsList() {
       <div class="draft-meta">
         <span>📍 ${escapeHtml(city)}</span>
         <span>📝 ${bodyChars} chars</span>
-        <span>🕐 ${updated}</span>
+        <span title="${updatedRel}">📅 ${updatedAbs}</span>
       </div>
       <div class="draft-actions">
         <button class="draft-action-btn" onclick="openDraft('${id}')">${active?'Abierto':'Abrir'}</button>
@@ -4489,6 +4657,23 @@ function renderDraftsList() {
 
 function escapeHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function formatAbsoluteDate(ts) {
+  const d = new Date(ts);
+  const today = new Date();
+  const yesterday = new Date(today.getTime() - 24*3600*1000);
+  const sameDay = d.toDateString() === today.toDateString();
+  const isYesterday = d.toDateString() === yesterday.toDateString();
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  if (sameDay) return 'Hoy ' + hh + ':' + mm;
+  if (isYesterday) return 'Ayer ' + hh + ':' + mm;
+  // dd/mm/aaaa HH:MM (mismo año → sin año)
+  const dd = String(d.getDate()).padStart(2,'0');
+  const MM = String(d.getMonth()+1).padStart(2,'0');
+  const sameYear = d.getFullYear() === today.getFullYear();
+  return dd + '/' + MM + (sameYear ? '' : '/' + d.getFullYear()) + ' · ' + hh + ':' + mm;
 }
 
 function formatRelativeTime(ts) {
