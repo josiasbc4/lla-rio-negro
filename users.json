@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-20T23:04:49.091Z",
+  "updatedAt": "2026-05-20T23:17:43.342Z",
   "users": [
     {
       "name": "Josias Amaya",
@@ -14,6 +14,10 @@
     {
       "name": "Enzo Fullone Token Senador",
       "hash": "f73ce6696b7451bd5ec30af1c4f22e220d8f99c8797c2e53ef816682ab922a44"
+    },
+    {
+      "name": "LUCAS MENICHELLI",
+      "hash": "3c1de1d95994e14d0c28e5f489c4a93fd121b48d25abd7633201edce3a02e11d"
     }
   ]
 }
