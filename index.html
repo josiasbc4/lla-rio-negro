@@ -3049,6 +3049,52 @@ async function ghPushUser(user) {
   return true;
 }
 
+async function ghRemoveUser(userOrHash) {
+  const token = getGitHubPAT();
+  if (!token) throw new Error('Falta configurar el Personal Access Token de GitHub en Mantenimiento → GitHub.');
+  const targetHash = (typeof userOrHash === 'string') ? userOrHash : userOrHash.hash;
+  const targetName = (typeof userOrHash === 'string') ? null : userOrHash.name;
+  const apiUrl = `https://api.github.com/repos/${GH_REPO}/contents/${GH_USERS_PATH}`;
+  const headers = {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
+  // 1. Leer estado actual
+  const getRes = await fetch(apiUrl, { headers });
+  if (!getRes.ok) {
+    const t = await getRes.text().catch(() => '');
+    throw new Error('No se pudo leer users.json del repo (' + getRes.status + '). ' + t.slice(0, 200));
+  }
+  const fileData = await getRes.json();
+  const current = JSON.parse(b64DecodeUtf8(fileData.content));
+  if (!Array.isArray(current.users)) current.users = [];
+  const before = current.users.length;
+  current.users = current.users.filter(u => u.hash !== targetHash);
+  if (current.users.length === before) {
+    // No estaba en el repo (probablemente solo local) — no es error
+    return { removed: false, notFound: true };
+  }
+  current.updatedAt = new Date().toISOString();
+  current.version = (current.version || 1);
+  const newContent = JSON.stringify(current, null, 2) + '\n';
+  // 2. Commit
+  const putRes = await fetch(apiUrl, {
+    method: 'PUT',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message: 'admin: quitar referente ' + (targetName || targetHash.slice(0,8)),
+      content: b64EncodeUtf8(newContent),
+      sha: fileData.sha
+    })
+  });
+  if (!putRes.ok) {
+    const errData = await putRes.json().catch(() => ({}));
+    throw new Error('Push falló: ' + (errData.message || putRes.status));
+  }
+  return { removed: true };
+}
+
 const AUTH_KEY = 'lla_auth_v1';
 const AUTH_TTL_DAYS = 30;
 let CURRENT_USER = null;
@@ -3404,30 +3450,98 @@ function adminToggleRole(name) {
 async function adminRegenCode(name) {
   const user = AUTHORIZED_USERS.find(u => u.name === name);
   if (!user) return;
-  if (!confirm('¿Generar un nuevo código para ' + name + '? El código anterior dejará de funcionar después del próximo deploy.')) return;
+  const hasPAT = !!getGitHubPAT();
+  const warn = hasPAT
+    ? '¿Generar un nuevo código para ' + name + '?\n\nSe va a publicar en GitHub. El código anterior dejará de funcionar en ~30 seg.'
+    : '⚠ Sin PAT configurado: el nuevo código solo va a funcionar localmente. El anterior seguirá vigente online.\n\n¿Continuar igualmente?';
+  if (!confirm(warn)) return;
+
+  const oldHash = user.hash;
   const primer = name.split(/\s+/)[0].toUpperCase().replace(/[^A-ZÁÉÍÓÚÑ]/g, '');
   const newCode = 'LLA-' + primer + '-' + randomSuffix(6);
   const newHash = await sha256(newCode);
   user.hash = newHash;
   registrySet(name, { code: newCode, role: user.role, addedAt: Date.now(), source: 'regen' });
   codeVisibility[name] = true;
-  markDirty();
+  if (hasPAT) {
+    setPublishStatus(newHash, { status: 'publishing', name });
+    // Limpiar el status del hash viejo
+    const all = getPublishStatus();
+    delete all[oldHash];
+    try { localStorage.setItem(PUBLISH_STATUS_KEY, JSON.stringify(all)); } catch {}
+  }
   renderAdminUsers();
   // Copiar el nuevo código al clipboard automáticamente
   try { await navigator.clipboard.writeText(newCode); } catch {}
-  showToast('🔄 Nuevo código generado y copiado al portapapeles', 'success', 4500);
+
+  if (hasPAT) {
+    showToast('⏳ Actualizando en GitHub…', 'info', 2500);
+    try {
+      // Quitar el hash viejo y agregar el nuevo (operación atómica vía un solo commit sería ideal,
+      // pero hacemos remove + add — dos commits — para no duplicar la lógica de la API)
+      await ghRemoveUser({ hash: oldHash, name });
+      await ghPushUser({ name, hash: newHash });
+      setPublishStatus(newHash, { status: 'pushed', name });
+      renderAdminUsers();
+      showToast('🔄 Nuevo código generado y publicado. Copiado al portapapeles.', 'success', 5000);
+      pollUntilLive(newHash, name);
+    } catch (e) {
+      setPublishStatus(newHash, { status: 'error', name, error: e.message });
+      renderAdminUsers();
+      showToast('✗ Error al publicar el nuevo código: ' + e.message, 'error', 5000);
+    }
+  } else {
+    showToast('🔄 Nuevo código generado y copiado (solo local — el anterior sigue activo online)', 'info', 5000);
+  }
 }
 
-function adminRemoveUser(name) {
-  if (!confirm('¿Quitar acceso a ' + name + '? Su código dejará de funcionar después del próximo deploy. Esta acción se puede revertir agregándolo de nuevo.')) return;
+async function adminRemoveUser(name) {
+  const user = AUTHORIZED_USERS.find(u => u.name === name);
+  if (!user) return;
+  const hasPAT = !!getGitHubPAT();
+  const warn = hasPAT
+    ? '¿Quitar acceso a ' + name + '?\n\nSe va a publicar el cambio en GitHub. En ~30 seg dejará de poder entrar.'
+    : '⚠ ATENCIÓN: NO tenés configurado el PAT de GitHub.\n\nSi quitás a ' + name + ' ahora, solo se va a eliminar de la lista LOCAL pero su código seguirá funcionando online.\n\nMejor configurá el PAT primero en Mantenimiento → GitHub.\n\n¿Continuar igualmente (solo borrado local)?';
+  if (!confirm(warn)) return;
+
+  const targetHash = user.hash;
+
+  // 1. Quitar de memoria + registry local
   const idx = AUTHORIZED_USERS.findIndex(u => u.name === name);
-  if (idx === -1) return;
-  AUTHORIZED_USERS.splice(idx, 1);
+  if (idx !== -1) AUTHORIZED_USERS.splice(idx, 1);
   registryRemove(name);
   delete codeVisibility[name];
-  markDirty();
+
+  // 2. Marcar status como "removing" mientras hacemos el push
+  if (hasPAT) {
+    setPublishStatus(targetHash, { status: 'publishing', name, action: 'remove' });
+  }
   renderAdminUsers();
-  showToast('🗑 ' + name + ' eliminado de la lista', 'info');
+
+  // 3. Push a GitHub si hay PAT
+  if (hasPAT) {
+    showToast('⏳ Quitando a ' + name + ' del repo…', 'info', 3000);
+    try {
+      const result = await ghRemoveUser({ hash: targetHash, name });
+      if (result.notFound) {
+        showToast('✓ ' + name + ' eliminado (no estaba en el repo)', 'success', 3500);
+      } else {
+        showToast('✓ ' + name + ' eliminado del repo. En ~30 seg deja de poder entrar.', 'success', 4500);
+      }
+      // Limpiar el status guardado (ya no existe el usuario)
+      const all = getPublishStatus();
+      delete all[targetHash];
+      try { localStorage.setItem(PUBLISH_STATUS_KEY, JSON.stringify(all)); } catch {}
+    } catch (e) {
+      showToast('✗ Error al quitar de GitHub: ' + e.message, 'error', 5000);
+      // Re-agregar localmente para que se vea que no se eliminó realmente
+      AUTHORIZED_USERS.push(user);
+      setPublishStatus(targetHash, { status: 'error', name, error: e.message });
+      renderAdminUsers();
+    }
+  } else {
+    showToast('🗑 ' + name + ' eliminado solo localmente (sin PAT no se pudo quitar de GitHub)', 'info', 5000);
+  }
 }
 
 function adminCopyFullSnippet() {
