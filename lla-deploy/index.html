@@ -1777,9 +1777,10 @@ body.exporting .doc-text-block {
 body.mode-membrete .mode-only-membrete { display: block; }
 body.mode-comunicado .mode-only-comunicado { display: block; }
 
-/* Botón Instagram (solo visible en comunicado) */
+/* Botones específicos por modo en el topbar */
 .btn-instagram { display: none !important; }
 body.mode-comunicado .btn-instagram { display: inline-flex !important; }
+body.mode-comunicado .btn-only-membrete { display: none !important; }
 .btn-instagram {
   background: linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%) !important;
   color: #fff !important;
@@ -2180,7 +2181,7 @@ body.mode-comunicado .doc-comunicado-wrap { display: flex; flex-direction: colum
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
       <span class="btn-label">Instagram</span>
     </button>
-    <button class="btn btn-glass" onclick="exportJPG()" aria-label="Exportar JPG">
+    <button class="btn btn-glass btn-only-membrete" onclick="exportJPG()" aria-label="Exportar JPG">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12l3 3 5-5"/></svg>
       <span class="btn-label">Exportar JPG</span>
     </button>
