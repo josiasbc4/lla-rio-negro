@@ -475,82 +475,164 @@ button:focus-visible, .btn:focus-visible, .city-btn:focus-visible {
 .admin-btn svg { width: 14px; height: 14px; }
 
 /* Drawer admin (lateral derecho) */
+/* ═══════════════ ADMIN — FULLSCREEN ═══════════════ */
 .admin-drawer {
-  position: fixed; top: 67px; right: -440px; width: 420px; height: calc(100vh - 67px);
-  background: linear-gradient(180deg, #0e0720 0%, #1a0d35 100%);
-  border-left: 1px solid rgba(245,158,11,0.25);
-  box-shadow: -8px 0 40px rgba(0,0,0,0.6);
-  z-index: 260; display: flex; flex-direction: column;
-  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at top, #1a0d35 0%, #0a0516 70%);
+  z-index: 260;
+  display: flex; flex-direction: column;
+  opacity: 0; pointer-events: none;
+  transform: scale(0.98);
+  transition: opacity 0.32s var(--ease-smooth), transform 0.32s var(--ease-smooth);
 }
-.admin-drawer { transition: right 0.45s var(--ease-smooth); }
-.admin-drawer.open { right: 0; }
+.admin-drawer.open { opacity: 1; pointer-events: auto; transform: scale(1); }
+
 .admin-backdrop {
-  position: fixed; top: 67px; right: 0; width: 100%; height: calc(100vh - 67px);
-  background: rgba(0,0,0,0.6); backdrop-filter: blur(2px);
-  z-index: 255; opacity: 0; pointer-events: none; transition: opacity 0.25s;
+  display: none; /* ya no necesita backdrop separado, el drawer cubre todo */
 }
-.admin-backdrop.open { opacity: 1; pointer-events: auto; }
 
 .admin-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 18px 22px 14px;
+  padding: 22px 40px 18px;
   border-bottom: 1px solid rgba(245,158,11,0.15);
+  background: rgba(10,5,22,0.5);
+  backdrop-filter: blur(12px);
 }
 .admin-header h3 {
-  font-size: 13px; font-weight: 800; text-transform: uppercase;
-  letter-spacing: 0.1em; color: #fcd34d;
+  font-size: 16px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.12em; color: #fcd34d;
+  display: flex; align-items: center; gap: 10px;
+}
+.admin-header h3 .ui-icon { width: 18px; height: 18px; }
+.admin-header-stats {
+  display: flex; gap: 24px;
+  font-size: 11px; color: rgba(255,255,255,0.55);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.admin-header-stat strong {
+  display: block; font-size: 22px; font-weight: 800; color: #fff;
+  letter-spacing: 0;
 }
 .admin-close {
   background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
-  width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
-  color: #fff; font-size: 18px; line-height: 1;
+  width: 40px; height: 40px; border-radius: 10px; cursor: pointer;
+  color: #fff; font-size: 22px; line-height: 1;
   display: flex; align-items: center; justify-content: center;
-  transition: all 0.15s;
+  transition: all 0.2s;
 }
 .admin-close:hover { background: rgba(255,255,255,0.14); transform: rotate(90deg); }
 
 .admin-tabs {
-  display: flex; gap: 2px; padding: 8px 14px 0;
+  display: flex; justify-content: center; gap: 4px;
+  padding: 16px 40px 0;
   border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: rgba(10,5,22,0.4);
+  backdrop-filter: blur(8px);
 }
 .admin-tab {
-  flex: 1; padding: 11px 8px;
+  padding: 14px 28px;
   background: transparent; border: none;
   color: rgba(255,255,255,0.5);
   font-family: 'Montserrat', sans-serif;
-  font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
   text-transform: uppercase; cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.15s;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+  display: inline-flex; align-items: center; gap: 8px;
+  position: relative;
 }
-.admin-tab:hover { color: rgba(255,255,255,0.8); }
+.admin-tab:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.03); border-radius: 6px 6px 0 0; }
 .admin-tab.active {
   color: #fcd34d;
   border-bottom-color: #fcd34d;
 }
+.admin-tab.active::before {
+  content: ''; position: absolute; inset: 0 0 -3px 0;
+  background: linear-gradient(180deg, transparent, rgba(252,211,77,0.06));
+  border-radius: 6px 6px 0 0;
+  pointer-events: none;
+}
 
 .admin-panel {
   flex: 1; overflow-y: auto;
-  padding: 20px 22px;
+  padding: 36px 40px 48px;
 }
-.admin-panel::-webkit-scrollbar { width: 6px; }
-.admin-panel::-webkit-scrollbar-thumb { background: rgba(245,158,11,0.25); border-radius: 3px; }
+.admin-panel-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+.admin-panel::-webkit-scrollbar { width: 8px; }
+.admin-panel::-webkit-scrollbar-thumb { background: rgba(245,158,11,0.25); border-radius: 4px; }
+.admin-panel::-webkit-scrollbar-thumb:hover { background: rgba(245,158,11,0.45); }
 .admin-pane { display: none; }
 .admin-pane.active { display: block; animation: paneIn 0.25s ease; }
 @keyframes paneIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
 .admin-section {
-  background: rgba(255,255,255,0.04);
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
   border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 12px; padding: 16px;
-  margin-bottom: 14px;
+  border-radius: 16px; padding: 22px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
 }
 .admin-section-title {
-  font-size: 10px; font-weight: 800; text-transform: uppercase;
-  letter-spacing: 0.1em; color: rgba(255,255,255,0.55);
-  margin-bottom: 12px;
-  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.12em; color: rgba(255,255,255,0.7);
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.admin-section-title .ui-icon { width: 14px; height: 14px; color: #fcd34d; }
+
+/* Grid de 2 columnas para Referentes en pantallas anchas */
+@media (min-width: 980px) {
+  .admin-users-grid {
+    display: grid; grid-template-columns: 380px 1fr; gap: 22px;
+    align-items: start;
+  }
+  .admin-users-grid > .admin-section { margin-bottom: 0; }
+}
+
+/* Buscador + filtros */
+.admin-toolbar {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.admin-search {
+  flex: 1; min-width: 200px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 10px;
+  padding: 10px 14px 10px 36px;
+  color: #fff; font-size: 13px;
+  outline: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");
+  background-repeat: no-repeat;
+  background-position: 12px center;
+}
+.admin-search:focus { border-color: rgba(245,158,11,0.5); }
+.admin-filter-chip {
+  padding: 8px 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.7);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  border-radius: 999px; cursor: pointer;
+  transition: all 0.15s;
+}
+.admin-filter-chip:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.admin-filter-chip.active {
+  background: linear-gradient(135deg, rgba(252,211,77,0.18), rgba(245,158,11,0.12));
+  color: #fcd34d;
+  border-color: rgba(245,158,11,0.4);
+}
+
+/* Lista de referentes en grid */
+.admin-users-list {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
 }
 .admin-input, .admin-section input[type="text"] {
   width: 100%;
@@ -756,26 +838,79 @@ button:focus-visible, .btn:focus-visible, .city-btn:focus-visible {
 }
 
 .admin-stats-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-  margin-bottom: 14px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px;
+  margin-bottom: 20px;
 }
 .admin-stat-card {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 10px; padding: 14px;
+  background: linear-gradient(160deg, rgba(123,63,160,0.18), rgba(123,63,160,0.04));
+  border: 1px solid rgba(166,109,212,0.25);
+  border-radius: 14px;
+  padding: 22px 20px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s var(--ease-out);
+}
+.admin-stat-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at top right, rgba(252,211,77,0.08), transparent 60%);
+  pointer-events: none;
+}
+.admin-stat-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(252,211,77,0.4);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
 }
 .admin-stat-value {
-  font-size: 26px; font-weight: 900;
+  font-size: 34px; font-weight: 900;
   color: #fcd34d;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 .admin-stat-label {
-  font-size: 10px; color: rgba(255,255,255,0.55);
-  letter-spacing: 0.04em; text-transform: uppercase;
-  margin-top: 4px;
+  font-size: 10px; color: rgba(255,255,255,0.6);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  margin-top: 8px;
+  font-weight: 700;
 }
+.admin-stat-card.accent-pink { background: linear-gradient(160deg, rgba(236,72,153,0.18), rgba(236,72,153,0.04)); border-color: rgba(236,72,153,0.3); }
+.admin-stat-card.accent-pink .admin-stat-value { color: #f9a8d4; }
+.admin-stat-card.accent-blue { background: linear-gradient(160deg, rgba(99,102,241,0.18), rgba(99,102,241,0.04)); border-color: rgba(99,102,241,0.3); }
+.admin-stat-card.accent-blue .admin-stat-value { color: #a5b4fc; }
+.admin-stat-card.accent-green { background: linear-gradient(160deg, rgba(34,197,94,0.18), rgba(34,197,94,0.04)); border-color: rgba(34,197,94,0.3); }
+.admin-stat-card.accent-green .admin-stat-value { color: #86efac; }
+
+/* Sparkline mini-grafico dentro de un stat card */
+.admin-stat-spark {
+  margin-top: 12px;
+  height: 28px;
+  position: relative;
+  z-index: 1;
+}
+.admin-stat-spark svg { width: 100%; height: 100%; display: block; }
+
+/* Grid 2 columnas para Actividad: chart grande izq + listado der */
+@media (min-width: 980px) {
+  .admin-activity-layout {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    align-items: start;
+  }
+  .admin-activity-layout > .admin-section { margin-bottom: 0; }
+}
+
 .admin-activity-list {
-  max-height: 280px; overflow-y: auto;
+  max-height: 420px; overflow-y: auto;
+  padding-right: 6px;
+}
+.admin-activity-list::-webkit-scrollbar { width: 6px; }
+.admin-activity-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+/* Maintenance: grid de 2 columnas */
+@media (min-width: 980px) {
+  .admin-maint-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;
+    align-items: start;
+  }
+  .admin-maint-grid > .admin-section { margin-bottom: 0; }
 }
 .admin-activity-item {
   display: flex; gap: 10px; align-items: flex-start;
@@ -818,11 +953,20 @@ button:focus-visible, .btn:focus-visible, .city-btn:focus-visible {
   border-radius: 2px;
 }
 
-@media (max-width: 600px) {
-  .admin-drawer { width: 100%; right: -100%; top: 0; height: 100dvh; padding-top: env(safe-area-inset-top); }
-  .admin-backdrop { width: 100%; top: 0; height: 100dvh; }
+@media (max-width: 768px) {
   .admin-btn { padding: 6px 10px; font-size: 10px; }
   .admin-btn span.btn-label { display: none; }
+  .admin-header { padding: 16px 18px 12px; flex-wrap: wrap; gap: 10px; }
+  .admin-header h3 { font-size: 13px; flex: 1; }
+  .admin-header-stats { width: 100%; order: 3; gap: 16px; }
+  .admin-header-stat strong { font-size: 16px; }
+  .admin-tabs { padding: 10px 16px 0; overflow-x: auto; scrollbar-width: none; }
+  .admin-tabs::-webkit-scrollbar { display: none; }
+  .admin-tab { padding: 12px 16px; font-size: 11px; white-space: nowrap; }
+  .admin-panel { padding: 20px 18px 60px; }
+  .admin-section { padding: 16px 18px; border-radius: 12px; }
+  .admin-toolbar { gap: 6px; }
+  .admin-filter-chip { padding: 6px 10px; font-size: 10px; }
 }
 
 /* ═══════════════ DRAFTS DRAWER ═══════════════ */
@@ -2441,11 +2585,18 @@ body.mode-comunicado .doc-comunicado-wrap { display: flex; flex-direction: colum
   <div class="drafts-list" id="draftsList"></div>
 </aside>
 
-<!-- ADMIN DRAWER -->
-<div class="admin-backdrop" id="adminBackdrop" onclick="closeAdminDrawer()"></div>
+<!-- ADMIN FULLSCREEN PANEL -->
 <aside class="admin-drawer" id="adminDrawer" role="dialog" aria-label="Panel de administración">
   <div class="admin-header">
-    <h3><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Panel de Administración</h3>
+    <h3>
+      <svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Panel de Administración
+    </h3>
+    <div class="admin-header-stats" id="adminHeaderStats">
+      <div class="admin-header-stat"><strong id="hdrStatUsers">—</strong>Referentes</div>
+      <div class="admin-header-stat"><strong id="hdrStatExports">—</strong>Exportaciones</div>
+      <div class="admin-header-stat"><strong id="hdrStatHoy">—</strong>Hoy</div>
+    </div>
     <button class="admin-close" onclick="closeAdminDrawer()" aria-label="Cerrar">×</button>
   </div>
   <div class="admin-tabs">
@@ -2455,22 +2606,34 @@ body.mode-comunicado .doc-comunicado-wrap { display: flex; flex-direction: colum
   </div>
 
   <div class="admin-panel">
+   <div class="admin-panel-inner">
 
     <!-- ▾ TAB: USUARIOS ▾ -->
     <div class="admin-pane active" id="paneUsuarios">
-      <div class="admin-section">
-        <div class="admin-section-title">➕ Generar nuevo código</div>
-        <input type="text" id="adminNewName" class="admin-input" placeholder="Nombre completo del referente" autocomplete="off">
-        <input type="text" id="adminNewCustomCode" class="admin-input" placeholder="Código custom (opcional, dejá vacío para random)" autocomplete="off">
-        <button class="admin-btn-primary" onclick="adminGenerateCode()">Generar código + hash</button>
-        <div id="adminGenOutput"></div>
-      </div>
+      <div class="admin-users-grid">
+        <div class="admin-section">
+          <div class="admin-section-title"><svg class="ui-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Generar nuevo código</div>
+          <input type="text" id="adminNewName" class="admin-input" placeholder="Nombre completo del referente" autocomplete="off">
+          <input type="text" id="adminNewCustomCode" class="admin-input" placeholder="Código custom (opcional)" autocomplete="off">
+          <button class="admin-btn-primary" onclick="adminGenerateCode()">Generar código + hash</button>
+          <div id="adminGenOutput"></div>
+        </div>
 
-      <div class="admin-section">
-        <div class="admin-section-title"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Referentes autorizados (<span id="adminUserCount">0</span>)</div>
-        <div class="admin-users-list" id="adminUsersList"></div>
+        <div class="admin-section">
+          <div class="admin-section-title">
+            <svg class="ui-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            Referentes autorizados (<span id="adminUserCount">0</span>)
+          </div>
+          <div class="admin-toolbar">
+            <input type="text" class="admin-search" id="adminUserSearch" placeholder="Buscar por nombre..." oninput="renderAdminUsers()" autocomplete="off">
+            <button class="admin-filter-chip active" data-filter="all" onclick="adminSetFilter('all')">Todos</button>
+            <button class="admin-filter-chip" data-filter="admin" onclick="adminSetFilter('admin')">Admins</button>
+            <button class="admin-filter-chip" data-filter="active" onclick="adminSetFilter('active')">Activos</button>
+            <button class="admin-filter-chip" data-filter="pending" onclick="adminSetFilter('pending')">Pendientes</button>
+          </div>
+          <div class="admin-users-list" id="adminUsersList"></div>
+        </div>
       </div>
-
       <div class="admin-dirty-banner" id="adminDirtyBanner" style="display:none"></div>
     </div>
 
@@ -2480,74 +2643,81 @@ body.mode-comunicado .doc-comunicado-wrap { display: flex; flex-direction: colum
         <div class="admin-stat-card">
           <div class="admin-stat-value" id="statTotal">0</div>
           <div class="admin-stat-label">Total exportaciones</div>
+          <div class="admin-stat-spark" id="sparkTotal"></div>
         </div>
-        <div class="admin-stat-card">
+        <div class="admin-stat-card accent-green">
           <div class="admin-stat-value" id="statHoy">0</div>
           <div class="admin-stat-label">Hoy</div>
+          <div class="admin-stat-spark" id="sparkHoy"></div>
         </div>
-        <div class="admin-stat-card">
+        <div class="admin-stat-card accent-pink">
           <div class="admin-stat-value" id="statPDF">0</div>
           <div class="admin-stat-label">PDFs</div>
         </div>
-        <div class="admin-stat-card">
+        <div class="admin-stat-card accent-blue">
           <div class="admin-stat-value" id="statJPG">0</div>
           <div class="admin-stat-label">JPGs</div>
         </div>
       </div>
 
-      <div class="admin-section">
-        <div class="admin-section-title"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Top ciudades</div>
-        <ul class="admin-top-list" id="topCities"></ul>
-      </div>
+      <div class="admin-activity-layout">
+        <div class="admin-section">
+          <div class="admin-section-title"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Top ciudades</div>
+          <ul class="admin-top-list" id="topCities"></ul>
+        </div>
 
-      <div class="admin-section">
-        <div class="admin-section-title"><svg class="ui-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Histórico reciente</div>
-        <div class="admin-activity-list" id="activityList"></div>
+        <div class="admin-section">
+          <div class="admin-section-title"><svg class="ui-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Histórico reciente</div>
+          <div class="admin-activity-list" id="activityList"></div>
+        </div>
       </div>
     </div>
 
     <!-- ▾ TAB: MANTENIMIENTO ▾ -->
     <div class="admin-pane" id="paneMantenimiento">
-      <div class="admin-section">
-        <div class="admin-section-title"><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Información de sesión</div>
-        <div style="font-size:11px;line-height:1.8;color:rgba(255,255,255,0.75);">
-          <div>Usuario: <strong id="infoUser" style="color:#fcd34d">—</strong></div>
-          <div>Rol: <strong id="infoRole" style="color:#fcd34d">—</strong></div>
-          <div>Sesión inicia: <strong id="infoSince" style="color:#fff">—</strong></div>
-          <div>Dispositivo: <strong id="infoDevice" style="color:#fff">—</strong></div>
+      <div class="admin-maint-grid">
+        <div class="admin-section">
+          <div class="admin-section-title"><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Información de sesión</div>
+          <div style="font-size:12px;line-height:2;color:rgba(255,255,255,0.8);">
+            <div>Usuario: <strong id="infoUser" style="color:#fcd34d">—</strong></div>
+            <div>Rol: <strong id="infoRole" style="color:#fcd34d">—</strong></div>
+            <div>Sesión inicia: <strong id="infoSince" style="color:#fff">—</strong></div>
+            <div>Dispositivo: <strong id="infoDevice" style="color:#fff">—</strong></div>
+          </div>
         </div>
-      </div>
 
-      <div class="admin-section">
-        <div class="admin-section-title"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>GitHub — auto-publicación de referentes</div>
-        <div style="font-size:11px;line-height:1.6;color:rgba(255,255,255,0.7);margin-bottom:10px">
-          Para que al generar un código se publique automáticamente en GitHub (sin tocar código), pegá acá tu <strong>Personal Access Token</strong>.<br>
-          <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" style="color:#a66dd4;text-decoration:underline">Crear PAT →</a>
-          <span style="display:block;margin-top:6px;font-size:10px;color:rgba(255,255,255,0.5)">Permisos: solo el repo <code>lla-rio-negro</code> · <code>Contents: Read and write</code></span>
+        <div class="admin-section">
+          <div class="admin-section-title"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>GitHub — auto-publicación de referentes</div>
+          <div style="font-size:12px;line-height:1.7;color:rgba(255,255,255,0.7);margin-bottom:12px">
+            Para que al generar un código se publique automáticamente en GitHub (sin tocar código), pegá acá tu <strong>Personal Access Token</strong>.<br>
+            <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" style="color:#a66dd4;text-decoration:underline">Crear PAT →</a>
+            <span style="display:block;margin-top:6px;font-size:10px;color:rgba(255,255,255,0.5)">Permisos: solo el repo <code>lla-rio-negro</code> · <code>Contents: Read and write</code></span>
+          </div>
+          <input type="password" id="adminGhPat" class="admin-input" placeholder="ghp_... o github_pat_..." autocomplete="off" value="">
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="admin-btn-primary" onclick="adminSaveGhPat()" style="flex:1"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar</button>
+            <button class="admin-btn-ghost" onclick="adminTestGhPat()" style="flex:1"><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Probar</button>
+            <button class="admin-btn-ghost admin-btn-danger" onclick="adminClearGhPat()" title="Eliminar token"><svg class="ui-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg></button>
+          </div>
+          <div id="adminGhPatStatus" style="margin-top:10px;font-size:12px;color:rgba(255,255,255,0.6)"></div>
         </div>
-        <input type="password" id="adminGhPat" class="admin-input" placeholder="ghp_... o github_pat_..." autocomplete="off" value="">
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button class="admin-btn-primary" onclick="adminSaveGhPat()" style="flex:1"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar</button>
-          <button class="admin-btn-ghost" onclick="adminTestGhPat()" style="flex:1"><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Probar</button>
-          <button class="admin-btn-ghost admin-btn-danger" onclick="adminClearGhPat()" title="Eliminar token"><svg class="ui-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg></button>
+
+        <div class="admin-section">
+          <div class="admin-section-title"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Backup / Restore</div>
+          <button class="admin-btn-ghost" onclick="adminExportConfig()"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Exportar config local (JSON)</button>
+          <button class="admin-btn-ghost" onclick="document.getElementById('adminImportFile').click()"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Importar config local</button>
+          <input type="file" id="adminImportFile" accept="application/json" style="display:none" onchange="adminImportConfig(event)">
         </div>
-        <div id="adminGhPatStatus" style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.6)"></div>
-      </div>
 
-      <div class="admin-section">
-        <div class="admin-section-title"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Backup / Restore</div>
-        <button class="admin-btn-ghost" onclick="adminExportConfig()"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Exportar config local (JSON)</button>
-        <button class="admin-btn-ghost" onclick="document.getElementById('adminImportFile').click()"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Importar config local</button>
-        <input type="file" id="adminImportFile" accept="application/json" style="display:none" onchange="adminImportConfig(event)">
-      </div>
-
-      <div class="admin-section">
-        <div class="admin-section-title"><svg class="ui-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Limpieza</div>
-        <button class="admin-btn-ghost" onclick="adminClearActivity()">Limpiar histórico de actividad</button>
-        <button class="admin-btn-ghost admin-btn-danger" onclick="adminWipeAll()"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Borrar TODO (drafts + actividad + sesión)</button>
+        <div class="admin-section">
+          <div class="admin-section-title"><svg class="ui-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Limpieza</div>
+          <button class="admin-btn-ghost" onclick="adminClearActivity()">Limpiar histórico de actividad</button>
+          <button class="admin-btn-ghost admin-btn-danger" onclick="adminWipeAll()"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Borrar TODO (drafts + actividad + sesión)</button>
+        </div>
       </div>
     </div>
 
+   </div>
   </div>
 </aside>
 
@@ -3209,10 +3379,12 @@ function getActivityLog() {
 function openAdminDrawer() {
   if (!CURRENT_USER || CURRENT_USER.role !== 'admin') return;
   document.getElementById('adminDrawer').classList.add('open');
-  document.getElementById('adminBackdrop').classList.add('open');
+  const bd = document.getElementById('adminBackdrop');
+  if (bd) bd.classList.add('open');
   renderAdminUsers();
   renderAdminActivity();
   renderAdminInfo();
+  refreshAdminHeaderStats();
   // Re-verificar status de los que quedaron pendientes
   resumePendingStatusChecks();
 }
@@ -3342,13 +3514,92 @@ function markDirty() {
   if (banner) banner.classList.add('show');
 }
 
+// ─── Helpers de Activity ───
+function last14DaysCounts(events) {
+  const counts = new Array(14).fill(0);
+  const now = Date.now();
+  events.forEach(e => {
+    const diffDays = Math.floor((now - e.ts) / (24*3600*1000));
+    if (diffDays >= 0 && diffDays < 14) counts[13 - diffDays]++;
+  });
+  return counts;
+}
+
+function renderSparkline(elId, data, color) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!data.length) { el.innerHTML = ''; return; }
+  const max = Math.max(1, ...data);
+  const w = 200, h = 28;
+  const step = w / (data.length - 1);
+  const points = data.map((v, i) => {
+    const x = i * step;
+    const y = h - (v / max) * h;
+    return x + ',' + y.toFixed(1);
+  }).join(' ');
+  // Área debajo de la línea
+  const area = '0,' + h + ' ' + points + ' ' + w + ',' + h;
+  el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <polygon points="${area}" fill="${color}" opacity="0.18"/>
+    <polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+  </svg>`;
+}
+
+function refreshAdminHeaderStats(totalExports, todayExports) {
+  const usersEl = document.getElementById('hdrStatUsers');
+  const expEl = document.getElementById('hdrStatExports');
+  const hoyEl = document.getElementById('hdrStatHoy');
+  if (usersEl) usersEl.textContent = AUTHORIZED_USERS.length;
+  if (expEl) expEl.textContent = totalExports != null ? totalExports : (getActivityLog().filter(e => e.action && e.action.startsWith('export_')).length);
+  if (hoyEl) {
+    if (todayExports != null) hoyEl.textContent = todayExports;
+    else {
+      const today = new Date().toDateString();
+      hoyEl.textContent = getActivityLog().filter(e => e.action && e.action.startsWith('export_') && new Date(e.ts).toDateString() === today).length;
+    }
+  }
+}
+
+let _adminUserFilter = 'all';
+function adminSetFilter(f) {
+  _adminUserFilter = f;
+  document.querySelectorAll('.admin-filter-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.filter === f);
+  });
+  renderAdminUsers();
+}
+
 function renderAdminUsers() {
   const list = document.getElementById('adminUsersList');
   const count = document.getElementById('adminUserCount');
   if (!list) return;
   count.textContent = AUTHORIZED_USERS.length;
   const registry = getRegistry();
-  list.innerHTML = AUTHORIZED_USERS.map((u, idx) => {
+
+  // Aplicar búsqueda + filtro
+  const searchEl = document.getElementById('adminUserSearch');
+  const q = (searchEl ? searchEl.value : '').trim().toLowerCase();
+  let filtered = AUTHORIZED_USERS.slice();
+  if (q) filtered = filtered.filter(u => u.name.toLowerCase().includes(q));
+  if (_adminUserFilter === 'admin') filtered = filtered.filter(u => u.role === 'admin');
+  else if (_adminUserFilter === 'active') {
+    filtered = filtered.filter(u => {
+      const st = userStatus(u);
+      return st.status === 'live';
+    });
+  } else if (_adminUserFilter === 'pending') {
+    filtered = filtered.filter(u => {
+      const st = userStatus(u);
+      return st.status === 'publishing' || st.status === 'pushed' || st.status === 'pushed_pending' || st.status === 'local' || st.status === 'error';
+    });
+  }
+
+  if (!filtered.length) {
+    list.innerHTML = '<div style="grid-column:1/-1;padding:24px;text-align:center;color:rgba(255,255,255,0.4);font-size:12px;font-style:italic">Sin resultados con ese criterio.</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map((u, idx) => {
     const isAdmin = u.role === 'admin';
     const isSelf = CURRENT_USER && u.name === CURRENT_USER.name;
     const initial = u.name.charAt(0).toUpperCase();
@@ -3680,7 +3931,7 @@ function copyToClipboard(text, btn, customMsg) {
 /* ─── TAB: ACTIVIDAD ─── */
 function renderAdminActivity() {
   const log = getActivityLog();
-  const exports = log.filter(e => e.action === 'export_pdf' || e.action === 'export_jpg' || e.action === 'share_pdf');
+  const exports = log.filter(e => e.action === 'export_pdf' || e.action === 'export_jpg' || e.action === 'share_pdf' || e.action === 'export_instagram');
   const today = new Date().toDateString();
   const todayExports = exports.filter(e => new Date(e.ts).toDateString() === today);
   const pdfCount = log.filter(e => e.action === 'export_pdf').length;
@@ -3691,6 +3942,13 @@ function renderAdminActivity() {
   animateCounter(document.getElementById('statHoy'), todayExports.length, 700);
   animateCounter(document.getElementById('statPDF'), pdfCount, 800);
   animateCounter(document.getElementById('statJPG'), jpgCount, 800);
+
+  // Sparklines: exportaciones por día (últimos 14 días)
+  renderSparkline('sparkTotal', last14DaysCounts(exports), '#fcd34d');
+  renderSparkline('sparkHoy', last14DaysCounts(exports), '#86efac');
+
+  // Refrescar header stats
+  refreshAdminHeaderStats(exports.length, todayExports.length);
 
   // Top cities
   const cityCounts = {};
