@@ -3170,6 +3170,9 @@ function showApp(user) {
   logActivity('login', { user: user.name });
   // Activar magnetic buttons en el topbar (solo desktop)
   setTimeout(bindMagneticButtons, 500);
+  // Re-validación periódica de sesión: si el referente fue removido del repo,
+  // cerrar su sesión automáticamente en máximo 2 minutos
+  startSessionRevalidation();
   // Bottom nav (mobile)
   document.body.classList.add('has-bottom-nav');
   refreshBottomNavAdminVisibility();
@@ -3259,6 +3262,26 @@ function userStatus(user) {
   const tracked = all[user.hash];
   if (tracked) return tracked;
   return { status: 'live', name: user.name };
+}
+
+// Poll: verifica cada N segundos hasta que el hash YA NO esté en users.json (eliminado)
+async function pollUntilGone(hash, name, maxTries = 30) {
+  for (let i = 0; i < maxTries; i++) {
+    try {
+      const res = await fetch('users.json?ts=' + Date.now() + '&r=' + Math.random(), { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.users && !data.users.some(u => u.hash === hash)) {
+          if (typeof showToast === 'function') {
+            showToast('🔒 ' + name + ' ya no puede entrar (revocado online)', 'success', 4000);
+          }
+          return true;
+        }
+      }
+    } catch {}
+    await new Promise(r => setTimeout(r, 4000));
+  }
+  return false;
 }
 
 // Poll: verifica cada N segundos si el hash aparece en el users.json live de GitHub Pages
@@ -3527,6 +3550,8 @@ async function adminRemoveUser(name) {
         showToast('✓ ' + name + ' eliminado (no estaba en el repo)', 'success', 3500);
       } else {
         showToast('✓ ' + name + ' eliminado del repo. En ~30 seg deja de poder entrar.', 'success', 4500);
+        // Confirmar la baja: poll hasta que NO aparezca más en users.json
+        pollUntilGone(targetHash, name);
       }
       // Limpiar el status guardado (ya no existe el usuario)
       const all = getPublishStatus();
@@ -3846,6 +3871,42 @@ function logout() {
   localStorage.removeItem(AUTH_KEY);
   sessionStorage.removeItem(AUTH_KEY);
   location.reload();
+}
+
+// Forzar logout sin confirmación (por revocación de acceso)
+function forceLogout(reason) {
+  localStorage.removeItem(AUTH_KEY);
+  sessionStorage.removeItem(AUTH_KEY);
+  if (reason) {
+    try { alert(reason); } catch {}
+  }
+  location.reload();
+}
+
+// Re-valida que el usuario actual sigue en users.json del repo cada 2 min.
+// Si fue removido → forzar logout.
+let _sessionRevalInterval = null;
+function startSessionRevalidation() {
+  if (_sessionRevalInterval) clearInterval(_sessionRevalInterval);
+  // Admin no se auto-loguea (no queremos que se kickee a sí mismo si está editando)
+  if (CURRENT_USER && CURRENT_USER.role === 'admin') return;
+  _sessionRevalInterval = setInterval(async () => {
+    if (!CURRENT_USER) return;
+    try {
+      const res = await fetch('users.json?ts=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!Array.isArray(data.users)) return;
+      const stillExists = data.users.some(u => u.name === CURRENT_USER.name);
+      if (!stillExists) {
+        clearInterval(_sessionRevalInterval);
+        forceLogout('Tu acceso fue revocado por un administrador.\n\nSi creés que es un error, contactá a tu coordinador.');
+      } else {
+        // Refrescar lista en memoria con la última versión del repo
+        AUTHORIZED_USERS = data.users;
+      }
+    } catch {}
+  }, 120 * 1000); // cada 2 minutos
 }
 
 async function handleLoginSubmit(e) {
