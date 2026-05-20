@@ -1810,6 +1810,47 @@ body.mode-comunicado .mode-only-comunicado { display: block; }
 body.mode-comunicado .btn-instagram { display: inline-flex !important; }
 body.mode-comunicado .btn-only-membrete { display: none !important; }
 
+/* ═══════════════ USER STATUS CHIPS (admin panel) ═══════════════ */
+.user-status-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 9px; font-weight: 800;
+  padding: 2px 8px 2px 6px; border-radius: 99px;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  line-height: 1.3;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.user-status-chip svg { width: 10px; height: 10px; }
+
+.user-status-live {
+  background: rgba(34,197,94,0.15);
+  color: #86efac;
+  border-color: rgba(34,197,94,0.35);
+}
+.user-status-publishing,
+.user-status-pushed {
+  background: rgba(99,102,241,0.15);
+  color: #c7d2fe;
+  border-color: rgba(99,102,241,0.35);
+}
+.user-status-local {
+  background: rgba(251,191,36,0.15);
+  color: #fcd34d;
+  border-color: rgba(251,191,36,0.35);
+}
+.user-status-error {
+  background: rgba(248,113,113,0.15);
+  color: #fca5a5;
+  border-color: rgba(248,113,113,0.4);
+}
+.chip-spin {
+  transform-origin: 12px 12px;
+  animation: chipSpin 0.9s linear infinite;
+}
+@keyframes chipSpin {
+  to { transform: rotate(360deg); transform-origin: 12px 12px; }
+}
+
 /* ═══════════════ UI ICONS ═══════════════ */
 .ui-icon {
   display: inline-block;
@@ -3123,6 +3164,17 @@ function openAdminDrawer() {
   renderAdminUsers();
   renderAdminActivity();
   renderAdminInfo();
+  // Re-verificar status de los que quedaron pendientes
+  resumePendingStatusChecks();
+}
+
+function resumePendingStatusChecks() {
+  const all = getPublishStatus();
+  Object.entries(all).forEach(([hash, info]) => {
+    if (info.status === 'pushed' || info.status === 'publishing' || info.status === 'pushed_pending') {
+      pollUntilLive(hash, info.name, 15); // 15 intentos × 4s = 1 min
+    }
+  });
 }
 
 function closeAdminDrawer() {
@@ -3142,6 +3194,54 @@ function switchAdminTab(tab) {
 
 /* ─── TAB: USUARIOS ─── */
 const REGISTRY_KEY = 'lla_admin_registry_v1';
+const PUBLISH_STATUS_KEY = 'lla_publish_status_v1'; // { hashShort: {status, ts, name} }
+
+// Status posibles: 'local' | 'publishing' | 'pushed' | 'live' | 'error'
+function getPublishStatus() {
+  try { return JSON.parse(localStorage.getItem(PUBLISH_STATUS_KEY) || '{}'); }
+  catch { return {}; }
+}
+function setPublishStatus(hash, data) {
+  const all = getPublishStatus();
+  all[hash] = { ...all[hash], ...data, ts: Date.now() };
+  try { localStorage.setItem(PUBLISH_STATUS_KEY, JSON.stringify(all)); }
+  catch {}
+}
+function userStatus(user) {
+  // Si el user es admin o estaba en la lista original (Josias/Luis) → 'live' por default
+  const all = getPublishStatus();
+  const tracked = all[user.hash];
+  if (tracked) return tracked;
+  return { status: 'live', name: user.name };
+}
+
+// Poll: verifica cada N segundos si el hash aparece en el users.json live de GitHub Pages
+async function pollUntilLive(hash, name, maxTries = 30) {
+  for (let i = 0; i < maxTries; i++) {
+    try {
+      const res = await fetch('users.json?ts=' + Date.now(), { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.users && data.users.some(u => u.hash === hash)) {
+          setPublishStatus(hash, { status: 'live', name });
+          // Re-render si el panel está abierto
+          if (document.getElementById('adminDrawer')?.classList.contains('open')) {
+            renderAdminUsers();
+          }
+          if (typeof showToast === 'function') {
+            showToast('✓ ' + name + ' ya puede entrar', 'success', 4000);
+          }
+          return true;
+        }
+      }
+    } catch {}
+    await new Promise(r => setTimeout(r, 4000));
+  }
+  // No apareció después de N intentos → marcar como pushed (no live aún)
+  setPublishStatus(hash, { status: 'pushed_pending', name });
+  if (document.getElementById('adminDrawer')?.classList.contains('open')) renderAdminUsers();
+  return false;
+}
 let adminDirty = false;
 let codeVisibility = {}; // { 'Josias Amaya': true|false } controla ocultar/mostrar código
 
@@ -3208,11 +3308,18 @@ function renderAdminUsers() {
     const adminToggleLabel = isAdmin ? '👤 Quitar admin' : '👑 Hacer admin';
     const adminToggleClass = isAdmin ? '' : 'gold';
 
+    const st = userStatus(u);
+    const statusChip = renderStatusChip(st);
+
     return `<div class="admin-user-card ${isAdmin?'is-admin':''} ${isSelf?'is-self':''}">
       <div class="admin-user-top">
         <div class="admin-user-avatar">${initial}</div>
         <div style="flex:1;min-width:0">
-          <div class="admin-user-name">${u.name}${isSelf?' <span style="font-size:9px;color:rgba(166,109,212,0.8);font-weight:600">(vos)</span>':''}</div>
+          <div class="admin-user-name" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span>${u.name}</span>
+            ${isSelf?'<span style="font-size:9px;color:rgba(166,109,212,0.8);font-weight:600">(vos)</span>':''}
+            ${statusChip}
+          </div>
           <div class="admin-user-hash">${hashShort}...</div>
         </div>
         ${isAdmin?'<span class="admin-user-role">Admin</span>':''}
@@ -3226,6 +3333,27 @@ function renderAdminUsers() {
     </div>`;
   }).join('');
   applyStagger(list, { delay: 35, max: 20 });
+}
+
+function renderStatusChip(st) {
+  if (!st) return '';
+  const map = {
+    'live':     { label: 'Activo',       cls: 'live',    icon: 'check' },
+    'publishing': { label: 'Publicando', cls: 'publishing', icon: 'spinner' },
+    'pushed':   { label: 'Esperando',    cls: 'pushed',  icon: 'spinner' },
+    'pushed_pending': { label: 'Demorado', cls: 'pushed', icon: 'clock' },
+    'local':    { label: 'Solo local',   cls: 'local',   icon: 'warning' },
+    'error':    { label: 'Error',        cls: 'error',   icon: 'x' }
+  };
+  const cfg = map[st.status] || map.live;
+  const iconSvg = {
+    check:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    spinner: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" class="chip-spin"/></svg>',
+    clock:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    x:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
+  };
+  return `<span class="user-status-chip user-status-${cfg.cls}" title="${cfg.label}">${iconSvg[cfg.icon]}<span>${cfg.label}</span></span>`;
 }
 
 function toggleCodeVisibility(name) {
@@ -3346,6 +3474,9 @@ async function adminGenerateCode() {
   AUTHORIZED_USERS.push(userObj);
   registrySet(name, { code, addedAt: Date.now(), source: 'admin_panel' });
   codeVisibility[name] = true;
+  // Estado inicial: local (todavía no se sabe si va a haber push)
+  const willPush = !!getGitHubPAT();
+  setPublishStatus(hash, { status: willPush ? 'publishing' : 'local', name });
   renderAdminUsers();
   // Limpiar inputs
   document.getElementById('adminNewName').value = '';
@@ -3374,11 +3505,21 @@ async function adminGenerateCode() {
     const statusEl = document.getElementById('adminPushStatus');
     try {
       await ghPushUser(userObj);
+      setPublishStatus(hash, { status: 'pushed', name });
+      renderAdminUsers();
       statusEl.style.background = 'rgba(34,197,94,0.12)';
       statusEl.style.borderColor = 'rgba(34,197,94,0.4)';
       statusEl.style.color = '#86efac';
-      statusEl.innerHTML = '✓ <strong>Publicado en GitHub.</strong> En ~30 segundos el referente puede entrar con su código.';
+      statusEl.innerHTML = '✓ <strong>Publicado en GitHub.</strong> Estamos verificando cuándo queda activo…';
+      // Polling en background
+      pollUntilLive(hash, name).then(isLive => {
+        if (isLive && document.getElementById('adminPushStatus') === statusEl) {
+          statusEl.innerHTML = '✓ <strong>Activo en el sitio.</strong> ' + name + ' ya puede entrar.';
+        }
+      });
     } catch (e) {
+      setPublishStatus(hash, { status: 'error', name, error: e.message });
+      renderAdminUsers();
       statusEl.style.background = 'rgba(248,113,113,0.12)';
       statusEl.style.borderColor = 'rgba(248,113,113,0.4)';
       statusEl.style.color = '#fca5a5';
