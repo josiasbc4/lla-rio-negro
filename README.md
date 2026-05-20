@@ -4,7 +4,7 @@ Herramienta web para generar **notas oficiales** y **comunicados de prensa** de 
 
 ## 🌐 Sitio en vivo
 
-👉 **https://josiasamaya.github.io/lla-rio-negro/** _(activar GitHub Pages → branch `main` → carpeta `/lla-deploy`)_
+👉 **https://josiasbc4.github.io/lla-rio-negro/** _(GitHub Pages: branch `main` → `/(root)`)_
 
 ## ✨ Funcionalidades
 
@@ -18,19 +18,19 @@ Herramienta web para generar **notas oficiales** y **comunicados de prensa** de 
 
 ## 🚀 Deploy
 
-El sitio servido está en `/lla-deploy/`. Cualquier cambio en `herramienta-lla.html` se debe replicar ahí antes de pushear.
+GitHub Pages despliega automáticamente desde la **raíz del branch `main`** en cada push. El `index.html` se mantiene sincronizado con `herramienta-lla.html`.
 
 ## 📂 Estructura
 
 ```
 .
-├── lla-deploy/          ← Lo que se publica (GitHub Pages)
-│   ├── index.html
-│   ├── manifest.json
-│   ├── sw.js
-│   └── LLA *.png
-├── herramienta-lla.html ← Fuente principal (idéntico a deploy/index.html)
-├── server.js            ← Dev server local en localhost:3131
+├── index.html            ← Lo que sirve GitHub Pages
+├── herramienta-lla.html  ← Fuente principal (idéntica a index.html)
+├── manifest.json         ← PWA manifest
+├── sw.js                 ← Service Worker (v3)
+├── users.json            ← Lista de referentes autorizados
+├── LLA *.png             ← Logos
+├── server.js             ← Dev server local en localhost:3131
 └── README.md
 ```
 
