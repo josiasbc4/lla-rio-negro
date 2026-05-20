@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-20T23:27:46.582Z",
+  "updatedAt": "2026-05-20T23:39:10.573Z",
   "users": [
     {
       "name": "Josias Amaya",
@@ -18,10 +18,6 @@
     {
       "name": "LUCAS MENICHELLI",
       "hash": "3c1de1d95994e14d0c28e5f489c4a93fd121b48d25abd7633201edce3a02e11d"
-    },
-    {
-      "name": "Vanesa Vedia",
-      "hash": "58cc8628633c051422317c9375fb0348abb6c45c3beae5de6a6b277e95470c29"
     }
   ]
 }
