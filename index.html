@@ -2671,6 +2671,18 @@ body.mode-comunicado .doc-comunicado-wrap { display: flex; flex-direction: colum
           <div class="admin-activity-list" id="activityList"></div>
         </div>
       </div>
+
+      <div class="admin-section">
+        <div class="admin-section-title"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar datos</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="admin-btn-ghost" onclick="adminDownloadCSV()" style="flex:1;min-width:200px"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Descargar CSV (Excel)</button>
+          <button class="admin-btn-ghost" onclick="adminSyncAllActivity()" style="flex:1;min-width:200px"><svg class="ui-icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Sincronizar todo al Sheet</button>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:rgba(255,255,255,0.55);line-height:1.5">
+          <strong style="color:#fcd34d">CSV:</strong> descarga toda tu actividad local en un archivo Excel-compatible.<br>
+          <strong style="color:#fcd34d">Sincronizar:</strong> envía toda la actividad local al Google Sheet (configurá la URL en Mantenimiento).
+        </div>
+      </div>
     </div>
 
     <!-- ▾ TAB: MANTENIMIENTO ▾ -->
@@ -2700,6 +2712,20 @@ body.mode-comunicado .doc-comunicado-wrap { display: flex; flex-direction: colum
             <button class="admin-btn-ghost admin-btn-danger" onclick="adminClearGhPat()" title="Eliminar token"><svg class="ui-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg></button>
           </div>
           <div id="adminGhPatStatus" style="margin-top:10px;font-size:12px;color:rgba(255,255,255,0.6)"></div>
+        </div>
+
+        <div class="admin-section">
+          <div class="admin-section-title"><svg class="ui-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>Google Sheets — sincronización privada</div>
+          <div style="font-size:12px;line-height:1.7;color:rgba(255,255,255,0.7);margin-bottom:12px">
+            Cada acción (export, login) se envía a tu Google Sheet en tiempo real. Solo vos y las personas que invites al Sheet ven los datos.<br>
+            <a href="#" onclick="adminShowSheetSetup(event)" style="color:#a66dd4;text-decoration:underline">📖 Ver instrucciones de setup (5 min) →</a>
+          </div>
+          <input type="text" id="adminSheetUrl" class="admin-input" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" value="">
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="admin-btn-primary" onclick="adminSaveSheetUrl()" style="flex:1"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg> Guardar y publicar</button>
+            <button class="admin-btn-ghost" onclick="adminTestSheetUrl()" style="flex:1"><svg class="ui-icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Test ping</button>
+          </div>
+          <div id="adminSheetStatus" style="margin-top:10px;font-size:12px;color:rgba(255,255,255,0.6)"></div>
         </div>
 
         <div class="admin-section">
@@ -3153,6 +3179,10 @@ async function loadUsersFromRepo() {
       if (Array.isArray(data.users) && data.users.length) {
         AUTHORIZED_USERS = data.users;
       }
+      // Config compartida (URL Apps Script, etc)
+      window._sharedConfig = {
+        sheetUrl: data.sheetUrl || data.script_url || ''
+      };
     }
   } catch (e) { /* silencioso: usa fallback embebido */ }
   _usersReadyResolve();
@@ -3358,17 +3388,44 @@ const ACTIVITY_KEY = 'lla_activity_log';
 const ACTIVITY_MAX = 200;
 
 function logActivity(action, meta) {
+  const entry = {
+    action,
+    ts: Date.now(),
+    user: (CURRENT_USER && CURRENT_USER.name) || 'desconocido',
+    ...(meta || {})
+  };
   try {
     const log = JSON.parse(localStorage.getItem(ACTIVITY_KEY) || '[]');
-    log.push({
-      action,
-      ts: Date.now(),
-      user: (CURRENT_USER && CURRENT_USER.name) || 'desconocido',
-      ...(meta || {})
-    });
+    log.push(entry);
     while (log.length > ACTIVITY_MAX) log.shift();
     localStorage.setItem(ACTIVITY_KEY, JSON.stringify(log));
   } catch (e) { console.warn('No se pudo loggear actividad:', e); }
+
+  // ─── Sync a Google Sheets si está configurado ───
+  // La URL del Apps Script Web App vive en users.json (config compartida)
+  // o en localStorage si todavía no fue centralizada
+  syncActivityToSheet(entry).catch(() => {});
+}
+
+// URL del Apps Script Web App (Google Sheets webhook)
+function getSheetWebhookUrl() {
+  // Prioridad: config compartida (users.json) → localStorage local
+  if (window._sharedConfig && window._sharedConfig.sheetUrl) return window._sharedConfig.sheetUrl;
+  return localStorage.getItem('lla_sheet_url_v1') || '';
+}
+
+async function syncActivityToSheet(entry) {
+  const url = getSheetWebhookUrl();
+  if (!url) return;
+  try {
+    // Apps Script no devuelve CORS headers, así que usamos 'no-cors' (silent fire-and-forget)
+    await fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' }, // text/plain evita preflight
+      body: JSON.stringify(entry)
+    });
+  } catch (e) { /* silencioso */ }
 }
 
 function getActivityLog() {
@@ -3410,7 +3467,7 @@ function switchAdminTab(tab) {
   if (pane) pane.classList.add('active');
   if (tab === 'actividad') renderAdminActivity();
   if (tab === 'usuarios') renderAdminUsers();
-  if (tab === 'mantenimiento') { renderAdminInfo(); adminRefreshGhPatStatus(); }
+  if (tab === 'mantenimiento') { renderAdminInfo(); adminRefreshGhPatStatus(); adminRefreshSheetStatus(); }
 }
 
 /* ─── TAB: USUARIOS ─── */
@@ -3512,6 +3569,266 @@ function markDirty() {
   adminDirty = true;
   const banner = document.getElementById('adminDirtyBanner');
   if (banner) banner.classList.add('show');
+}
+
+// ─── Instrucciones de setup del Google Sheets ───
+function adminShowSheetSetup(e) {
+  if (e) e.preventDefault();
+  const script = `function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var sheet = SpreadsheetApp.getActiveSheet();
+    // Cabecera si la hoja está vacía
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(['Fecha', 'Usuario', 'Acción', 'Ciudad', 'Título', 'Extra']);
+      sheet.getRange(1, 1, 1, 6).setFontWeight('bold').setBackground('#371959').setFontColor('#ffffff');
+    }
+    var ts = data.ts ? new Date(data.ts) : new Date();
+    var extra = Object.keys(data)
+      .filter(function(k) { return ['action','ts','user','city','titulo'].indexOf(k) === -1; })
+      .map(function(k) { return k + '=' + data[k]; })
+      .join(' | ');
+    sheet.appendRow([ts, data.user || '', data.action || '', data.city || '', data.titulo || '', extra]);
+    return ContentService.createTextOutput(JSON.stringify({ok:true}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({error:err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+  const escScript = script.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const html = `
+    <div style="max-width:680px;line-height:1.7;font-size:13px;color:rgba(255,255,255,0.85)">
+      <h3 style="color:#fcd34d;margin-bottom:14px;font-size:16px">📋 Setup Google Sheets (5 min)</h3>
+
+      <ol style="padding-left:20px;display:flex;flex-direction:column;gap:14px">
+        <li><strong>Crear Google Sheet</strong><br>
+          Andá a <a href="https://sheets.new" target="_blank" rel="noopener" style="color:#a66dd4">sheets.new</a> → ponele un nombre (ej: "LLA Actividad").<br>
+          <strong style="color:#fcd34d">Compartilo solo con las personas que quieras</strong> (botón Compartir arriba a la derecha).
+        </li>
+
+        <li><strong>Abrir Apps Script</strong><br>
+          En el Sheet, menú <strong>Extensiones → Apps Script</strong>.
+        </li>
+
+        <li><strong>Pegar el script</strong><br>
+          Borrá lo que está y pegá esto:<br>
+          <button onclick="navigator.clipboard.writeText(document.getElementById('appsScriptCode').textContent); this.textContent='✓ Copiado'" style="margin:6px 0;padding:4px 10px;background:rgba(166,109,212,0.2);border:1px solid rgba(166,109,212,0.5);color:#d4b3f0;border-radius:6px;cursor:pointer;font-size:11px">📋 Copiar código</button>
+          <pre id="appsScriptCode" style="background:#08040f;padding:12px;border-radius:8px;font-size:10px;overflow-x:auto;border:1px solid rgba(166,109,212,0.3);max-height:200px;color:#d4c5ee">${escScript}</pre>
+        </li>
+
+        <li><strong>Guardar y desplegar</strong><br>
+          Click en el ícono 💾 (Guardar) → después <strong>Implementar → Nueva implementación</strong>.<br>
+          • Tipo: <strong>Aplicación web</strong><br>
+          • Ejecutar como: <strong>Yo (tu cuenta)</strong><br>
+          • Acceso: <strong>Cualquier usuario</strong> (no te asustes, la URL es secreta)<br>
+          Click <strong>Implementar</strong> → autorizá los permisos cuando te pida.
+        </li>
+
+        <li><strong>Copiar la URL</strong><br>
+          Al final te da una URL tipo <code style="font-size:10px">https://script.google.com/macros/s/AKfy.../exec</code><br>
+          Copiala y pegala en el campo de arriba → <strong>Guardar y publicar</strong>.
+        </li>
+
+        <li><strong>Test</strong><br>
+          Click en <strong>Test ping</strong>. En tu Sheet debería aparecer una fila nueva en ~3 seg con la acción "test".<br>
+          A partir de ahí, <strong>cada acción de cualquier referente se sincroniza automáticamente</strong>.
+        </li>
+      </ol>
+
+      <div style="margin-top:20px;padding:14px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:10px;color:#86efac;font-size:12px">
+        💡 <strong>Privacidad:</strong> el Sheet solo lo ven las personas con las que vos lo compartiste. Nadie más (ni los referentes ni nosotros) tiene acceso. La URL del script no expone los datos — solo recibe escrituras.
+      </div>
+    </div>
+  `;
+  showAdminModal('Setup Google Sheets', html);
+}
+
+// Modal genérico para mostrar contenido HTML en admin
+function showAdminModal(title, htmlContent) {
+  let modal = document.getElementById('adminGenericModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'adminGenericModal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px';
+    modal.onclick = function(e) { if (e.target === modal) modal.style.display = 'none'; };
+    modal.innerHTML = '<div style="background:linear-gradient(180deg,#1a0d35,#0e0720);border:1px solid rgba(252,211,77,0.3);border-radius:14px;padding:28px;max-width:90vw;max-height:90vh;overflow-y:auto;position:relative"><button id="adminGenericModalClose" style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);width:32px;height:32px;border-radius:8px;color:#fff;font-size:18px;cursor:pointer">×</button><div id="adminGenericModalBody"></div></div>';
+    document.body.appendChild(modal);
+    modal.querySelector('#adminGenericModalClose').onclick = function() { modal.style.display = 'none'; };
+  }
+  modal.querySelector('#adminGenericModalBody').innerHTML = htmlContent;
+  modal.style.display = 'flex';
+}
+
+// ─── EXPORT CSV de actividad ───
+function adminDownloadCSV() {
+  const log = getActivityLog();
+  if (!log.length) {
+    showToast('No hay actividad para exportar todavía', 'info', 3000);
+    return;
+  }
+  // Headers
+  const headers = ['fecha_hora', 'usuario', 'accion', 'ciudad', 'titulo', 'extra'];
+  const rows = log.map(e => {
+    const d = new Date(e.ts);
+    const fecha = d.toISOString().replace('T',' ').slice(0,19);
+    const extra = Object.entries(e)
+      .filter(([k]) => !['action','ts','user','city','titulo'].includes(k))
+      .map(([k,v]) => k+'='+v)
+      .join(' | ');
+    return [
+      fecha,
+      e.user || '',
+      e.action || '',
+      e.city || '',
+      e.titulo || '',
+      extra
+    ];
+  });
+  // CSV escape
+  const csvEscape = v => {
+    if (v == null) return '';
+    const s = String(v);
+    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  };
+  const csv = '﻿' + // BOM para que Excel detecte UTF-8
+    headers.join(',') + '\n' +
+    rows.map(r => r.map(csvEscape).join(',')).join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const today = new Date().toISOString().slice(0,10);
+  a.download = 'lla-actividad-' + today + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✓ ' + log.length + ' registros exportados a CSV', 'success', 3000);
+}
+
+// ─── Google Sheets webhook (Apps Script) ───
+async function adminSaveSheetUrl() {
+  const input = document.getElementById('adminSheetUrl');
+  const status = document.getElementById('adminSheetStatus');
+  const url = input.value.trim();
+  if (!url) {
+    status.innerHTML = '<span style="color:#fca5a5">⚠ Pegá la URL del Apps Script primero</span>';
+    return;
+  }
+  if (!url.startsWith('https://script.google.com/')) {
+    status.innerHTML = '<span style="color:#fca5a5">⚠ No parece una URL de Apps Script (debe empezar con <code>https://script.google.com/</code>)</span>';
+    return;
+  }
+  // Guardar localmente primero (fallback)
+  localStorage.setItem('lla_sheet_url_v1', url);
+  // Y subirla a users.json en GitHub para que todos los referentes la usen
+  const token = getGitHubPAT();
+  if (!token) {
+    status.innerHTML = '<span style="color:#fcd34d">✓ Guardada localmente, pero sin PAT no se puede compartir con el resto de los referentes.</span>';
+    if (window._sharedConfig) window._sharedConfig.sheetUrl = url;
+    return;
+  }
+  try {
+    status.innerHTML = '<span style="color:#c7d2fe">⏳ Publicando configuración en GitHub…</span>';
+    await ghUpdateSharedConfig({ sheetUrl: url });
+    if (window._sharedConfig) window._sharedConfig.sheetUrl = url;
+    status.innerHTML = '<span style="color:#86efac">✓ URL guardada y publicada. Toda la actividad de los referentes va a empezar a sincronizar al Sheet automáticamente.</span>';
+  } catch (e) {
+    status.innerHTML = '<span style="color:#fca5a5">✗ ' + escapeHtml(e.message) + '</span>';
+  }
+}
+
+async function adminTestSheetUrl() {
+  const status = document.getElementById('adminSheetStatus');
+  const url = (document.getElementById('adminSheetUrl').value.trim()) || getSheetWebhookUrl();
+  if (!url) {
+    status.innerHTML = '<span style="color:#fca5a5">⚠ Pegá una URL primero</span>';
+    return;
+  }
+  status.innerHTML = '<span style="color:#c7d2fe">⏳ Enviando registro de prueba al Sheet…</span>';
+  try {
+    await fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'test',
+        ts: Date.now(),
+        user: (CURRENT_USER && CURRENT_USER.name) || 'admin_test',
+        note: 'Test desde panel admin'
+      })
+    });
+    status.innerHTML = '<span style="color:#86efac">✓ Enviado. Revisá tu Google Sheet — debería aparecer una fila nueva (puede tardar 2-3 seg).</span>';
+  } catch (e) {
+    status.innerHTML = '<span style="color:#fca5a5">✗ ' + escapeHtml(e.message) + '</span>';
+  }
+}
+
+async function adminSyncAllActivity() {
+  const url = getSheetWebhookUrl();
+  if (!url) {
+    showToast('Configurá primero la URL del Sheet en Mantenimiento → Google Sheets', 'error', 4000);
+    return;
+  }
+  const log = getActivityLog();
+  if (!log.length) {
+    showToast('No hay actividad local para sincronizar', 'info', 3000);
+    return;
+  }
+  if (!confirm('¿Enviar ' + log.length + ' registros locales al Sheet? Pueden generar duplicados si ya los sincronizaste antes.')) return;
+  showToast('⏳ Enviando ' + log.length + ' registros al Sheet…', 'info', 3000);
+  let ok = 0;
+  for (const entry of log) {
+    try {
+      await fetch(url, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(entry)
+      });
+      ok++;
+      await new Promise(r => setTimeout(r, 80)); // throttle para no saturar
+    } catch {}
+  }
+  showToast('✓ ' + ok + ' registros enviados al Sheet', 'success', 4000);
+}
+
+// Helper: actualizar el users.json en GitHub con campos adicionales (sheetUrl, etc)
+async function ghUpdateSharedConfig(patch) {
+  const token = getGitHubPAT();
+  if (!token) throw new Error('Falta el PAT de GitHub');
+  const apiUrl = `https://api.github.com/repos/${GH_REPO}/contents/${GH_USERS_PATH}`;
+  const headers = {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
+  const getRes = await fetch(apiUrl, { headers });
+  if (!getRes.ok) throw new Error('No se pudo leer users.json (' + getRes.status + ')');
+  const fileData = await getRes.json();
+  const current = JSON.parse(b64DecodeUtf8(fileData.content));
+  Object.assign(current, patch);
+  current.updatedAt = new Date().toISOString();
+  const newContent = JSON.stringify(current, null, 2) + '\n';
+  const putRes = await fetch(apiUrl, {
+    method: 'PUT',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message: 'admin: actualizar config compartida (' + Object.keys(patch).join(',') + ')',
+      content: b64EncodeUtf8(newContent),
+      sha: fileData.sha
+    })
+  });
+  if (!putRes.ok) {
+    const errData = await putRes.json().catch(() => ({}));
+    throw new Error(errData.message || 'Push falló (' + putRes.status + ')');
+  }
+  return true;
 }
 
 // ─── Helpers de Activity ───
@@ -4106,6 +4423,24 @@ function adminClearGhPat() {
   setGitHubPAT('');
   const status = document.getElementById('adminGhPatStatus');
   if (status) status.innerHTML = '<span style="color:rgba(255,255,255,0.55)">Token eliminado.</span>';
+}
+
+function adminRefreshSheetStatus() {
+  const input = document.getElementById('adminSheetUrl');
+  const status = document.getElementById('adminSheetStatus');
+  const current = getSheetWebhookUrl();
+  if (input) input.value = current || '';
+  if (!status) return;
+  if (current) {
+    const shared = window._sharedConfig && window._sharedConfig.sheetUrl;
+    if (shared && shared === current) {
+      status.innerHTML = '<span style="color:#86efac">✓ URL activa y publicada — todos los referentes están sincronizando al Sheet.</span>';
+    } else {
+      status.innerHTML = '<span style="color:#fcd34d">✓ Guardada localmente. Tocá <strong>Guardar y publicar</strong> para que la usen el resto de referentes también.</span>';
+    }
+  } else {
+    status.innerHTML = '<span style="color:rgba(255,255,255,0.5)">Sin URL configurada.</span>';
+  }
 }
 
 function adminRefreshGhPatStatus() {
