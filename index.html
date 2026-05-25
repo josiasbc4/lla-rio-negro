@@ -3328,7 +3328,7 @@ async function syncAdminRegistry() {
   const adminCode = registryGet(CURRENT_USER.name)?.code;
   if (!adminCode) return;
   try {
-    const encrypted = await _adminEncryptRegistry(adminCode, getRegistry());
+    const encrypted = await _adminEncryptRegistry(adminCode, { registry: getRegistry(), pat: getGitHubPAT() });
     const apiUrl = `https://api.github.com/repos/${GH_REPO}/contents/${GH_USERS_PATH}`;
     const headers = { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
     const getRes = await fetch(apiUrl, { headers });
@@ -3379,12 +3379,14 @@ async function tryAuthenticate(code) {
     const remoteBlob = (window._remoteAdminData || {})[user.hash];
     if (remoteBlob) {
       try {
-        const remoteReg = await _adminDecryptRegistry(adminCode, remoteBlob);
+        const decrypted = await _adminDecryptRegistry(adminCode, remoteBlob);
+        const remoteReg = decrypted.registry || decrypted;
         const localReg = getRegistry();
         for (const [n, d] of Object.entries(remoteReg)) {
           if (!localReg[n] || (d.addedAt || 0) > (localReg[n].addedAt || 0)) localReg[n] = d;
         }
         setRegistry(localReg);
+        if (decrypted.pat && !getGitHubPAT()) setGitHubPAT(decrypted.pat);
       } catch (e) { /* blob de otro dispositivo no compatible, ignorar */ }
     }
   }
