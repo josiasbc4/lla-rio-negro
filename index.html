@@ -5606,12 +5606,20 @@ async function loadMontserratFonts() {
 async function loadImageAsDataUrl(src) {
   try {
     const blob = await fetch(src).then(r => r.blob());
-    return await new Promise((resolve, reject) => {
+    const dataUrl = await new Promise((resolve, reject) => {
       const fr = new FileReader();
       fr.onloadend = () => resolve(fr.result);
       fr.onerror = reject;
       fr.readAsDataURL(blob);
     });
+    // Medir dimensiones naturales para preservar aspect ratio
+    const dims = await new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+      img.onerror = () => resolve({ w: 1, h: 1 });
+      img.src = dataUrl;
+    });
+    return { dataUrl, ...dims };
   } catch (e) {
     console.warn('No se pudo cargar imagen:', src, e.message);
     return null;
@@ -5676,20 +5684,23 @@ async function exportComunicadoPDFNative() {
       pdf.setFontSize(13);
       pdf.setTextColor(255, 255, 255);
       pdf.text('COMUNICADO DE PRENSA', ML, 17);
-      // Logo blanco a la derecha
+      // Logo blanco a la derecha (preservando aspect ratio)
       if (blancoLogo) {
-        try { pdf.addImage(blancoLogo, 'PNG', PAGE_W - 50, 6, 26, 13); } catch {}
+        const targetH = 14; // mm
+        const w = targetH * (blancoLogo.w / blancoLogo.h);
+        try { pdf.addImage(blancoLogo.dataUrl, 'PNG', PAGE_W - MR - w, (BANNER_H - targetH) / 2 - 2, w, targetH); } catch {}
       }
       // Ciudad debajo del logo
       pdf.setFont('Montserrat', 'bold');
       pdf.setFontSize(7);
-      pdf.text(city, PAGE_W - MR, 23, { align: 'right' });
+      pdf.text(city, PAGE_W - MR, BANNER_H - 5, { align: 'right' });
     }
 
     function drawFooter() {
       if (violetaLogo) {
-        const w = 26, h = 13;
-        try { pdf.addImage(violetaLogo, 'PNG', (PAGE_W - w) / 2, PAGE_H - FOOTER_RESERVE + 8, w, h); } catch {}
+        const targetH = 14; // mm
+        const w = targetH * (violetaLogo.w / violetaLogo.h);
+        try { pdf.addImage(violetaLogo.dataUrl, 'PNG', (PAGE_W - w) / 2, PAGE_H - FOOTER_RESERVE + 6, w, targetH); } catch {}
       }
     }
 
