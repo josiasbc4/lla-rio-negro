@@ -2205,6 +2205,8 @@ body.mode-comunicado .doc-comunicado-wrap { display: flex; flex-direction: colum
   color: #1a1a1a; line-height: 1.4;
   margin-bottom: 10px;
   text-align: center;
+  word-spacing: normal;
+  letter-spacing: normal;
 }
 .doc-comunicado-subtitle {
   font-family: 'Montserrat', sans-serif;
@@ -2213,13 +2215,18 @@ body.mode-comunicado .doc-comunicado-wrap { display: flex; flex-direction: colum
   margin-bottom: 18px;
   text-align: center;
   font-style: italic;
+  word-spacing: normal;
+  letter-spacing: normal;
 }
 .doc-comunicado-subtitle:empty { display: none; }
 .doc-comunicado-text {
   font-family: 'Montserrat', sans-serif;
   font-size: 13px; color: #1a1a1a;
-  line-height: 1.65; text-align: justify;
+  line-height: 1.65;
+  text-align: left;          /* justify rompe el word-spacing en html2canvas */
   white-space: pre-wrap;
+  word-spacing: normal;
+  letter-spacing: normal;
 }
 .doc-comunicado-links {
   margin-top: 22px;
@@ -5463,9 +5470,13 @@ async function ensureFontsLoaded() {
     try {
       await Promise.all([
         document.fonts.load('400 12px Montserrat'),
+        document.fonts.load('400 13px Montserrat'),    // cuerpo comunicado
+        document.fonts.load('500 13px Montserrat'),    // subtítulo comunicado
+        document.fonts.load('500 italic 13px Montserrat'), // subtítulo italic
         document.fonts.load('600 12px Montserrat'),
-        document.fonts.load('700 28px Montserrat'),
-        document.fonts.load('700 13px Montserrat')
+        document.fonts.load('700 13px Montserrat'),
+        document.fonts.load('700 16px Montserrat'),    // título comunicado nuevo
+        document.fonts.load('700 28px Montserrat')
       ]);
     } catch {}
   }
@@ -5563,7 +5574,7 @@ async function exportPDF() {
   const auditInfo = await prepareAuditStamp();
   // Aguardar carga de fuentes web — crucial para que html2canvas mida texto correctamente
   await ensureFontsLoaded();
-  await new Promise(r => setTimeout(r, 200));
+  await new Promise(r => setTimeout(r, 400));
   try {
     if (!window.jspdf || !window.html2canvas) throw new Error('Librerías no cargadas');
     const { jsPDF } = window.jspdf;
@@ -5682,7 +5693,7 @@ async function exportInstagram() {
 
     // 2. Esperar fuentes + un tick
     await ensureFontsLoaded();
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 400));
 
     // 3. Capturar con html2canvas
     const el = document.getElementById('igRender');
@@ -5727,7 +5738,7 @@ async function exportJPG() {
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   await prepareAuditStamp();
   await ensureFontsLoaded();
-  await new Promise(r => setTimeout(r, 200));
+  await new Promise(r => setTimeout(r, 400));
   try {
     if (!window.html2canvas) throw new Error('Librería html2canvas no cargada');
     const el = document.getElementById('document-preview');
