@@ -1843,6 +1843,14 @@ body.exporting .doc-footer {
   color: #000000 !important;
 }
 
+/* EXPORT: forzar Arial en el comunicado para evitar bug de html2canvas con web fonts
+   (Montserrat carga async → html2canvas mide con fallback y dibuja con Montserrat,
+   resultado: caracteres superpuestos). Arial es system font: garantiza render correcto. */
+body.exporting .doc-comunicado-wrap,
+body.exporting .doc-comunicado-wrap * {
+  font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif !important;
+}
+
 .doc-date-line {
   text-align: right;
   margin-bottom: 18px;
