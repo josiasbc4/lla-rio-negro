@@ -3017,6 +3017,7 @@ Asimismo, se adjunta como Anexo I el desarrollo de fundamentos técnicos, juríd
 
         <div class="doc-recipient">
           <p id="docRecipientTitle">Al Sr./Sra. Presidente/a Del Concejo Deliberante</p>
+          <p id="docRecipientName" style="display:none"></p>
           <p id="docRecipientCity">de General Roca &nbsp;&nbsp;S__________/__________D</p>
         </div>
 
@@ -3523,7 +3524,8 @@ function resumePendingStatusChecks() {
 
 function closeAdminDrawer() {
   document.getElementById('adminDrawer').classList.remove('open');
-  document.getElementById('adminBackdrop').classList.remove('open');
+  const bd = document.getElementById('adminBackdrop');
+  if (bd) bd.classList.remove('open');
 }
 
 function switchAdminTab(tab) {
@@ -4871,7 +4873,7 @@ function switchMode(mode) {
     document.body.classList.toggle('mode-comunicado', mode === 'comunicado');
     document.getElementById('modeTabMembrete').classList.toggle('active', mode === 'membrete');
     document.getElementById('modeTabComunicado').classList.toggle('active', mode === 'comunicado');
-    if (mode === 'comunicado') updateComunicadoPreview();
+    if (mode === 'comunicado') updateComunicadoPreview(); else updatePreview();
     return;
   }
   currentMode = mode;
@@ -4895,7 +4897,7 @@ function switchMode(mode) {
     document.body.classList.toggle('mode-comunicado', mode === 'comunicado');
     document.getElementById('modeTabMembrete').classList.toggle('active', mode === 'membrete');
     document.getElementById('modeTabComunicado').classList.toggle('active', mode === 'comunicado');
-    if (mode === 'comunicado') updateComunicadoPreview();
+    if (mode === 'comunicado') updateComunicadoPreview(); else updatePreview();
 
     // 3. Animar ENTRADA del nuevo modo
     if (preview) {
@@ -5106,6 +5108,16 @@ function applyZoom() {
   wrapper.style.width = '794px';
   wrapper.style.height = (doc.offsetHeight * scale) + 'px';
   wrapper.style.marginBottom = '24px';
+  // En mobile (scale < 1) la combinación flex align-items:center + wrapper 794px
+  // produce un left negativo que recorta el borde izquierdo del documento.
+  // Solución: anclar al borde izquierdo con transform-origin top left.
+  if (scale < 1) {
+    wrapper.style.transformOrigin = 'top left';
+    wrapper.style.alignSelf = 'flex-start';
+  } else {
+    wrapper.style.transformOrigin = 'top center';
+    wrapper.style.alignSelf = '';
+  }
   const lvl = document.getElementById('zoomLevel');
   if (lvl) lvl.textContent = Math.round(scale * 100) + '%';
 }
@@ -5228,9 +5240,7 @@ const RECIPIENT_TEMPLATES = {
 
 function composeRecipientTitle() {
   const tpl = document.getElementById('recipientTemplate').value;
-  const name = document.getElementById('recipientName').value.trim();
-  const base = RECIPIENT_TEMPLATES[tpl] || RECIPIENT_TEMPLATES.presidente;
-  return name ? base + ' ' + name : base;
+  return RECIPIENT_TEMPLATES[tpl] || RECIPIENT_TEMPLATES.presidente;
 }
 
 function updatePreview() {
@@ -5255,6 +5265,12 @@ function updatePreview() {
   document.getElementById('datePreviewLabel').textContent = dateFormatted || '(sin fecha seleccionada)';
 
   document.getElementById('docRecipientTitle').textContent = recipTitle;
+  const recipNameVal = document.getElementById('recipientName').value.trim();
+  const recipNameEl = document.getElementById('docRecipientName');
+  if (recipNameEl) {
+    recipNameEl.textContent = recipNameVal;
+    recipNameEl.style.display = recipNameVal ? '' : 'none';
+  }
   document.getElementById('docRecipientCity').innerHTML = 'de ' + city + ' &nbsp;&nbsp;S__________/__________D';
 
   if (!isActive('docBodyBlocks')) renderBodyBlocks(bodyText, city);
@@ -6315,6 +6331,14 @@ function setupShareButton() {
    ════════════════════════════════════════════════════════════════ */
 function validateForm() {
   const missing = [];
+  if (currentMode === 'comunicado') {
+    const titulo = document.getElementById('comunicadoTitulo').value.trim();
+    const cuerpo = document.getElementById('comunicadoCuerpo').value.trim();
+    if (!titulo) missing.push('Título del comunicado');
+    if (!cuerpo) missing.push('Cuerpo del comunicado');
+    return missing;
+  }
+  // modo membrete (nota oficial)
   const city = document.getElementById('cityInput').value.trim();
   const recipName = document.getElementById('recipientName').value.trim();
   const body = document.getElementById('bodyText').value.trim();
