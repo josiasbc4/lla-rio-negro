@@ -5566,7 +5566,243 @@ function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
+/* ════════════════════════════════════════════════════════════════
+   EXPORT COMUNICADO PDF NATIVO (texto vectorial con Montserrat)
+   ════════════════════════════════════════════════════════════════
+   html2canvas tiene un bug irreparable con Montserrat (caracteres
+   superpuestos). Para el comunicado renderizamos el PDF con texto
+   real de jsPDF, embebiendo el TTF de Montserrat. Resultado: texto
+   vectorial perfecto, seleccionable, buscable, ~50KB en vez de ~1MB. */
+
+const MONTSERRAT_URLS = {
+  normal: 'https://cdn.jsdelivr.net/gh/JulietaUla/Montserrat@master/fonts/ttf/Montserrat-Regular.ttf',
+  italic: 'https://cdn.jsdelivr.net/gh/JulietaUla/Montserrat@master/fonts/ttf/Montserrat-MediumItalic.ttf',
+  bold:   'https://cdn.jsdelivr.net/gh/JulietaUla/Montserrat@master/fonts/ttf/Montserrat-Bold.ttf'
+};
+const MONTSERRAT_CACHE_KEY = 'lla_montserrat_ttf_v1';
+
+async function loadMontserratFonts() {
+  // Intentar cache
+  try {
+    const cached = localStorage.getItem(MONTSERRAT_CACHE_KEY);
+    if (cached) return JSON.parse(cached);
+  } catch {}
+  // Fetch desde CDN
+  const out = {};
+  for (const [key, url] of Object.entries(MONTSERRAT_URLS)) {
+    const buf = await fetch(url, { mode: 'cors' }).then(r => {
+      if (!r.ok) throw new Error('No se pudo descargar Montserrat ' + key + ' (' + r.status + ')');
+      return r.arrayBuffer();
+    });
+    const bytes = new Uint8Array(buf);
+    let bin = '';
+    for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
+    out[key] = btoa(bin);
+  }
+  try { localStorage.setItem(MONTSERRAT_CACHE_KEY, JSON.stringify(out)); } catch {}
+  return out;
+}
+
+async function loadImageAsDataUrl(src) {
+  try {
+    const blob = await fetch(src).then(r => r.blob());
+    return await new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onloadend = () => resolve(fr.result);
+      fr.onerror = reject;
+      fr.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.warn('No se pudo cargar imagen:', src, e.message);
+    return null;
+  }
+}
+
+async function exportComunicadoPDFNative() {
+  showLoading('Cargando fuentes Montserrat...');
+  document.body.classList.add('exporting');
+  let fonts, blancoLogo, violetaLogo;
+  try {
+    [fonts, blancoLogo, violetaLogo] = await Promise.all([
+      loadMontserratFonts(),
+      loadImageAsDataUrl('LLA BLANCO.png'),
+      loadImageAsDataUrl('LLA VIOLETA.png')
+    ]);
+  } catch (e) {
+    document.body.classList.remove('exporting');
+    hideLoading();
+    showToast('Error cargando recursos: ' + e.message, 'error', 5000);
+    return;
+  }
+
+  showLoading('Generando PDF A4...');
+  const auditInfo = await prepareAuditStamp();
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+
+    // Embebido de Montserrat
+    pdf.addFileToVFS('Montserrat-Regular.ttf', fonts.normal);
+    pdf.addFont('Montserrat-Regular.ttf', 'Montserrat', 'normal');
+    pdf.addFileToVFS('Montserrat-Italic.ttf', fonts.italic);
+    pdf.addFont('Montserrat-Italic.ttf', 'Montserrat', 'italic');
+    pdf.addFileToVFS('Montserrat-Bold.ttf', fonts.bold);
+    pdf.addFont('Montserrat-Bold.ttf', 'Montserrat', 'bold');
+
+    // Contenido
+    const cityRaw = (document.getElementById('cityInput').value || 'RÍO NEGRO');
+    const city = cityRaw.toUpperCase();
+    const titulo = (document.getElementById('comunicadoTitulo').value || '').trim() || 'Título del comunicado';
+    const subtitulo = (document.getElementById('comunicadoSubtitulo').value || '').trim();
+    const cuerpo = (document.getElementById('comunicadoCuerpo').value || '').trim();
+    const linkLabel = (document.getElementById('comunicadoLinkLabel').value || '').trim();
+    const linkUrl = (document.getElementById('comunicadoLinkUrl').value || '').trim();
+
+    // Layout en mm
+    const PAGE_W = 210, PAGE_H = 297;
+    const ML = 18, MR = 18;
+    const CW = PAGE_W - ML - MR;          // ancho contenido
+    const BANNER_H = 28;
+    const FOOTER_RESERVE = 28;            // espacio para el logo footer
+    const BODY_BOTTOM = PAGE_H - FOOTER_RESERVE;
+    const VIOLET = [55, 25, 89];          // #371959
+    const INK = [26, 26, 26];             // #1a1a1a
+
+    function drawBanner() {
+      pdf.setFillColor(...VIOLET);
+      pdf.rect(0, 0, PAGE_W, BANNER_H, 'F');
+      // "COMUNICADO DE PRENSA"
+      pdf.setFont('Montserrat', 'bold');
+      pdf.setFontSize(13);
+      pdf.setTextColor(255, 255, 255);
+      pdf.text('COMUNICADO DE PRENSA', ML, 17);
+      // Logo blanco a la derecha
+      if (blancoLogo) {
+        try { pdf.addImage(blancoLogo, 'PNG', PAGE_W - 50, 6, 26, 13); } catch {}
+      }
+      // Ciudad debajo del logo
+      pdf.setFont('Montserrat', 'bold');
+      pdf.setFontSize(7);
+      pdf.text(city, PAGE_W - MR, 23, { align: 'right' });
+    }
+
+    function drawFooter() {
+      if (violetaLogo) {
+        const w = 26, h = 13;
+        try { pdf.addImage(violetaLogo, 'PNG', (PAGE_W - w) / 2, PAGE_H - FOOTER_RESERVE + 8, w, h); } catch {}
+      }
+    }
+
+    // Página 1
+    drawBanner();
+    let y = BANNER_H + 12;
+    const PT_TO_MM = 0.3528;              // 1pt en mm
+    const lh = (sizePt, factor) => sizePt * factor * PT_TO_MM;
+
+    // Título
+    pdf.setFont('Montserrat', 'bold');
+    pdf.setFontSize(16);
+    pdf.setTextColor(...INK);
+    const tituloLines = pdf.splitTextToSize(titulo, CW);
+    const tituloLineH = lh(16, 1.35);
+    tituloLines.forEach(line => {
+      pdf.text(line, PAGE_W / 2, y, { align: 'center' });
+      y += tituloLineH;
+    });
+    y += 3;
+
+    // Subtítulo (opcional)
+    if (subtitulo) {
+      pdf.setFont('Montserrat', 'italic');
+      pdf.setFontSize(13);
+      const subLines = pdf.splitTextToSize(subtitulo, CW);
+      const subLineH = lh(13, 1.4);
+      subLines.forEach(line => {
+        pdf.text(line, PAGE_W / 2, y, { align: 'center' });
+        y += subLineH;
+      });
+      y += 6;
+    } else {
+      y += 4;
+    }
+
+    // Cuerpo
+    pdf.setFont('Montserrat', 'normal');
+    pdf.setFontSize(13);
+    pdf.setTextColor(...INK);
+    const bodyLineH = lh(13, 1.55);
+    const paraGap = bodyLineH * 0.65;
+
+    const paragraphs = cuerpo ? cuerpo.split(/\n\s*\n/).map(p => p.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean) : [];
+    paragraphs.forEach((para, idx) => {
+      const lines = pdf.splitTextToSize(para, CW);
+      lines.forEach(line => {
+        if (y + bodyLineH > BODY_BOTTOM) {
+          pdf.addPage();
+          drawBanner();
+          y = BANNER_H + 12;
+        }
+        pdf.text(line, ML, y);
+        y += bodyLineH;
+      });
+      if (idx < paragraphs.length - 1) y += paraGap;
+    });
+
+    // Links
+    if (linkLabel || linkUrl) {
+      y += 6;
+      if (y + 12 > BODY_BOTTOM) {
+        pdf.addPage();
+        drawBanner();
+        y = BANNER_H + 12;
+      }
+      if (linkLabel) {
+        pdf.setFont('Montserrat', 'bold');
+        pdf.setFontSize(10);
+        pdf.setTextColor(...INK);
+        pdf.text(linkLabel, ML, y);
+        y += lh(10, 1.5);
+      }
+      if (linkUrl) {
+        pdf.setFont('Montserrat', 'normal');
+        pdf.setFontSize(9);
+        pdf.setTextColor(...VIOLET);
+        try { pdf.textWithLink(linkUrl, ML, y, { url: linkUrl }); }
+        catch { pdf.text(linkUrl, ML, y); }
+      }
+    }
+
+    // Footer en la última página
+    drawFooter();
+
+    // Metadatos
+    const pageCount = pdf.internal.getNumberOfPages();
+    pdf.setProperties({
+      title: 'Comunicado LLA - ' + cityRaw,
+      subject: titulo,
+      author: auditInfo ? auditInfo.user : 'La Libertad Avanza Río Negro',
+      creator: 'Herramienta Partidaria LLA Río Negro',
+      keywords: 'LLA, comunicado, ' + cityRaw + (auditInfo ? ', ref:' + auditInfo.fingerprint : '')
+    });
+
+    const filename = 'Comunicado-LLA-' + cityRaw.replace(/\s+/g, '-') + '.pdf';
+    const blob = pdf.output('blob');
+    downloadBlob(blob, filename);
+    logActivity('export_pdf', { city: cityRaw, mode: 'comunicado', pages: pageCount, fingerprint: auditInfo && auditInfo.fingerprint });
+    showToast('✓ PDF generado (' + pageCount + ' ' + (pageCount === 1 ? 'página' : 'páginas') + '): ' + filename, 'success');
+  } catch (e) {
+    console.error('Error PDF nativo:', e);
+    showToast('Error al generar PDF: ' + (e.message || e), 'error', 5000);
+  }
+  document.body.classList.remove('exporting');
+  hideLoading();
+}
+
 async function exportPDF() {
+  // Comunicado → renderer nativo con texto vectorial Montserrat
+  if (currentMode === 'comunicado') {
+    return exportComunicadoPDFNative();
+  }
   showLoading('Generando PDF A4...');
   document.body.classList.add('exporting');
   // Cerrar drawer si está abierto y desenfocar elementos editables
