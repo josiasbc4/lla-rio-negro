@@ -5950,6 +5950,205 @@ async function loadMontserratFonts() {
   return out;
 }
 
+// Carga Montserrat (Regular/Bold/MediumItalic) en document.fonts como 'MontserratEmbed'.
+// Lo usamos para el render IG nativo a canvas — garantiza que Canvas 2D
+// renderice con la fuente correcta (mismo problema de html2canvas con web fonts).
+let _montserratEmbedPromise = null;
+async function ensureMontserratEmbedded() {
+  if (_montserratEmbedPromise) return _montserratEmbedPromise;
+  _montserratEmbedPromise = (async () => {
+    const fonts = await loadMontserratFonts();
+    const make = async (b64, weight, style) => {
+      const ff = new FontFace('MontserratEmbed',
+        'url(data:font/ttf;base64,' + b64 + ')',
+        { weight, style });
+      const loaded = await ff.load();
+      document.fonts.add(loaded);
+      return loaded;
+    };
+    await Promise.all([
+      make(fonts.normal, '400', 'normal'),
+      make(fonts.bold,   '700', 'normal'),
+      make(fonts.italic, '500', 'italic')
+    ]);
+    // Pre-cargar tamaños grandes que va a usar el IG
+    if (document.fonts && document.fonts.load) {
+      await Promise.all([
+        document.fonts.load('700 44px MontserratEmbed'),
+        document.fonts.load('800 48px MontserratEmbed'),
+        document.fonts.load('500 italic 28px MontserratEmbed'),
+        document.fonts.load('400 26px MontserratEmbed')
+      ]);
+    }
+    return true;
+  })();
+  return _montserratEmbedPromise;
+}
+
+// Wrap de texto a un ancho dado usando el ctx.measureText del canvas.
+// Respeta espacios duros (no rompe palabras a la mitad).
+function wrapTextCanvas(ctx, text, maxWidth) {
+  if (!text) return [];
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const test = line ? line + ' ' + word : word;
+    const w = ctx.measureText(test).width;
+    if (w > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+// Render nativo 1080×1440 a un canvas — sin html2canvas.
+async function renderIGCanvasNative({ city, titulo, subtitulo, cuerpo, linkLabel, linkUrl, blancoLogo, violetaLogo }) {
+  await ensureMontserratEmbedded();
+
+  const W = 1080, H = 1440;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Fondo blanco
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  // ── BANNER VIOLETA ──
+  const BANNER_H = 220;
+  ctx.fillStyle = '#371959';
+  ctx.fillRect(0, 0, W, BANNER_H);
+
+  // Label "COMUNICADO DE PRENSA"
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.font = '700 44px MontserratEmbed';
+  ctx.fillText('COMUNICADO', 64, 90);
+  ctx.font = '400 32px MontserratEmbed';
+  ctx.fillText('DE PRENSA', 64, 140);
+
+  // Logo blanco + city (derecha)
+  let logoBottomY = BANNER_H - 30;
+  if (blancoLogo && blancoLogo.dataUrl) {
+    const logoH = 100;
+    const logoW = logoH * (blancoLogo.w / blancoLogo.h);
+    const logoX = W - 64 - logoW;
+    const logoY = 30;
+    const img = new Image();
+    img.src = blancoLogo.dataUrl;
+    await new Promise(r => { img.onload = r; img.onerror = r; });
+    ctx.drawImage(img, logoX, logoY, logoW, logoH);
+    // City label centrada bajo el logo
+    ctx.font = '700 22px MontserratEmbed';
+    ctx.textAlign = 'center';
+    ctx.fillText(city.toUpperCase(), logoX + logoW / 2, logoY + logoH + 24);
+  }
+
+  // ── CONTENIDO ──
+  const ML = 80, MR = 80;
+  const CW = W - ML - MR;
+  const FOOTER_H = 200;
+  let y = BANNER_H + 56;
+
+  // Título (centrado, bold)
+  ctx.fillStyle = '#1a1a1a';
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'center';
+  const titleSize = 48;
+  ctx.font = '800 ' + titleSize + 'px MontserratEmbed';
+  const titleLineH = titleSize * 1.18;
+  const titleLines = wrapTextCanvas(ctx, titulo, CW);
+  titleLines.forEach(line => { ctx.fillText(line, W / 2, y); y += titleLineH; });
+  y += 18;
+
+  // Subtítulo (italic, centrado)
+  if (subtitulo) {
+    const subSize = 28;
+    ctx.font = '500 italic ' + subSize + 'px MontserratEmbed';
+    const subLineH = subSize * 1.3;
+    const subLines = wrapTextCanvas(ctx, subtitulo, CW);
+    subLines.forEach(line => { ctx.fillText(line, W / 2, y); y += subLineH; });
+    y += 32;
+  } else {
+    y += 16;
+  }
+
+  // Cuerpo (left, auto-fit si overflowea)
+  ctx.textAlign = 'left';
+  const cuerpoClean = (cuerpo || '').split(/\n\s*\n/).map(p => p.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean);
+  // Reservar espacio para links si los hay
+  const linksH = (linkLabel || linkUrl) ? 80 : 0;
+  const bodyMaxY = H - FOOTER_H - linksH - 20;
+  // Auto-fit: empezar en 26pt y bajar hasta 16pt si no entra
+  const baseBodySize = 26;
+  let bodySize = baseBodySize;
+  const computeBodyH = (fSize) => {
+    ctx.font = '400 ' + fSize + 'px MontserratEmbed';
+    const lh = fSize * 1.55;
+    const pg = lh * 0.55;
+    let total = 0;
+    cuerpoClean.forEach((p, i) => {
+      const lines = wrapTextCanvas(ctx, p, CW);
+      total += lines.length * lh;
+      if (i < cuerpoClean.length - 1) total += pg;
+    });
+    return total;
+  };
+  let bodyH = computeBodyH(bodySize);
+  let shrinkPercent = 0;
+  while (y + bodyH > bodyMaxY && bodySize > 16) {
+    bodySize -= 1;
+    bodyH = computeBodyH(bodySize);
+  }
+  if (bodySize < baseBodySize) {
+    shrinkPercent = Math.round((1 - bodySize / baseBodySize) * 100);
+  }
+  // Render del body con el size final
+  const finalLineH = bodySize * 1.55;
+  const paraGap = finalLineH * 0.55;
+  ctx.font = '400 ' + bodySize + 'px MontserratEmbed';
+  ctx.fillStyle = '#1a1a1a';
+  cuerpoClean.forEach((p, i) => {
+    const lines = wrapTextCanvas(ctx, p, CW);
+    lines.forEach(line => { ctx.fillText(line, ML, y); y += finalLineH; });
+    if (i < cuerpoClean.length - 1) y += paraGap;
+  });
+
+  // Links
+  if (linkLabel || linkUrl) {
+    y += 30;
+    if (linkLabel) {
+      ctx.font = '700 22px MontserratEmbed';
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillText(linkLabel, ML, y);
+      y += 30;
+    }
+    if (linkUrl) {
+      ctx.font = '500 22px MontserratEmbed';
+      ctx.fillStyle = '#371959';
+      ctx.fillText(linkUrl, ML, y);
+    }
+  }
+
+  // ── FOOTER (logo violeta centrado) ──
+  if (violetaLogo && violetaLogo.dataUrl) {
+    const fH = 110;
+    const fW = fH * (violetaLogo.w / violetaLogo.h);
+    const img = new Image();
+    img.src = violetaLogo.dataUrl;
+    await new Promise(r => { img.onload = r; img.onerror = r; });
+    ctx.drawImage(img, (W - fW) / 2, H - FOOTER_H + 50, fW, fH);
+  }
+
+  return { canvas, shrinkPercent };
+}
+
 async function loadImageAsDataUrl(src) {
   try {
     const blob = await fetch(src).then(r => r.blob());
@@ -6274,82 +6473,38 @@ async function exportInstagram() {
     return;
   }
 
+  // Render NATIVO con Canvas 2D + Montserrat embebido (mismo approach que el PDF nativo).
+  // html2canvas tiene el bug de superposición de caracteres con Montserrat — aquí lo evitamos
+  // dibujando texto directo con ctx.fillText sobre fuente cargada vía FontFace API.
+  showLoading('Cargando fuentes Montserrat...');
+  let blancoLogo, violetaLogo;
+  try {
+    [, blancoLogo, violetaLogo] = await Promise.all([
+      ensureMontserratEmbedded(),
+      loadImageAsDataUrl('LLA BLANCO.png'),
+      loadImageAsDataUrl('LLA VIOLETA.png')
+    ]);
+  } catch (e) {
+    hideLoading();
+    showToast('Error cargando recursos: ' + e.message, 'error', 5000);
+    return;
+  }
+
   showLoading('Generando imagen Instagram 1080×1440...');
   try {
-    // 1. Poblar el render offscreen con los valores actuales
-    const city = (document.getElementById('cityInput').value || 'RÍO NEGRO').toUpperCase();
+    const cityRaw = document.getElementById('cityInput').value || 'RÍO NEGRO';
+    const city = cityRaw.toUpperCase();
+    const subtitulo = (document.getElementById('comunicadoSubtitulo')?.value || '').trim();
     const linkLabel = document.getElementById('comunicadoLinkLabel').value.trim();
     const linkUrl = document.getElementById('comunicadoLinkUrl').value.trim();
 
-    document.getElementById('igCityLabel').textContent = city;
-    document.getElementById('igTitulo').textContent = titulo;
-    const igSubEl = document.getElementById('igSubtitulo');
-    if (igSubEl) igSubEl.textContent = (document.getElementById('comunicadoSubtitulo')?.value || '').trim();
-    document.getElementById('igCuerpo').textContent = cuerpo;
-    const linksEl = document.getElementById('igLinks');
-    if (linkLabel || linkUrl) {
-      linksEl.style.display = '';
-      linksEl.innerHTML = (linkLabel ? '<strong>' + escapeHtml(linkLabel) + '</strong><br>' : '') +
-        (linkUrl ? '<span style="color:#371959;">' + escapeHtml(linkUrl) + '</span>' : '');
-    } else {
-      linksEl.style.display = 'none';
-    }
-
-    // 2. Esperar fuentes + un tick
-    await ensureFontsLoaded();
-    await new Promise(r => setTimeout(r, 400));
-
-    // 2b. Auto-fit: si el contenido excede 1440px de alto, achicar el cuerpo
-    // progresivamente (hasta -40%) para que entre sin cortarse.
-    const el = document.getElementById('igRender');
-    const igBody = el.querySelector('.ig-body');
-    const igText = document.getElementById('igCuerpo');
-    const origBodyFontSize = igText ? getComputedStyle(igText).fontSize : null;
-    const origBodyLH = igText ? igText.style.lineHeight : '';
-    let shrinkApplied = 0;
-    if (igText && origBodyFontSize) {
-      const origPx = parseFloat(origBodyFontSize);
-      // Medir overflow
-      const innerH = igBody ? igBody.scrollHeight : 0;
-      const allowed = igBody ? igBody.clientHeight : 0;
-      if (innerH > allowed + 4) {
-        // Buscar el factor mínimo que hace que entre (entre 0.6 y 1.0)
-        for (let factor = 0.95; factor >= 0.6; factor -= 0.05) {
-          igText.style.fontSize = (origPx * factor) + 'px';
-          igText.style.lineHeight = '1.45';
-          // forzar reflow
-          void igBody.offsetHeight;
-          if (igBody.scrollHeight <= igBody.clientHeight + 4) {
-            shrinkApplied = Math.round((1 - factor) * 100);
-            break;
-          }
-        }
-        if (igBody.scrollHeight > igBody.clientHeight + 4) {
-          // Llegamos al 60% y todavía no entra — avisar
-          shrinkApplied = -1;
-        }
-      }
-    }
-
-    // 3. Capturar con html2canvas
-    const canvas = await html2canvas(el, {
-      width: 1080,
-      height: 1440,
-      scale: 1,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      logging: false
+    const { canvas, shrinkPercent } = await renderIGCanvasNative({
+      city, titulo, subtitulo, cuerpo, linkLabel, linkUrl, blancoLogo, violetaLogo
     });
 
-    // Restaurar fuente original
-    if (igText && origBodyFontSize) {
-      igText.style.fontSize = '';
-      igText.style.lineHeight = origBodyLH;
-    }
-
-    // 4. Descargar como PNG
+    // Descargar como PNG
     const dataUrl = canvas.toDataURL('image/png', 1.0);
-    const cityClean = (document.getElementById('cityInput').value || 'RioNegro').replace(/\s+/g,'-');
+    const cityClean = cityRaw.replace(/\s+/g, '-');
     const filename = 'Comunicado-IG-' + cityClean + '.png';
     const link = document.createElement('a');
     link.download = filename;
@@ -6358,15 +6513,12 @@ async function exportInstagram() {
     link.click();
     document.body.removeChild(link);
 
-    // 5. Log activity
     if (typeof logActivity === 'function') {
-      logActivity('export_instagram', { city: document.getElementById('cityInput').value, titulo: titulo.slice(0, 80) });
+      logActivity('export_instagram', { city: cityRaw, titulo: titulo.slice(0, 80) });
     }
 
-    if (shrinkApplied > 0) {
-      showToast('✓ Imagen IG lista — texto reducido ' + shrinkApplied + '% para que entre en 1080×1440', 'success', 4500);
-    } else if (shrinkApplied < 0) {
-      showToast('⚠ El comunicado es muy largo para 1 imagen IG — recomendado: usar el PDF o acortar el cuerpo', 'error', 6000);
+    if (shrinkPercent > 0) {
+      showToast('✓ Imagen IG lista — texto reducido ' + shrinkPercent + '% para que entre', 'success', 4500);
     } else {
       showToast('✓ Imagen Instagram lista (1080×1440)', 'success', 3000);
     }
