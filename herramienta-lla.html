@@ -1742,6 +1742,118 @@ body.exporting .doc-watermark { display: none !important; }
   transition: transform 0.2s ease;
 }
 
+/* ═══════════════ FLOATING EDITOR BAR (estilo Word/Docs) ═══════════════ */
+.floating-editor-bar {
+  position: sticky;
+  top: 8px;
+  z-index: 50;
+  align-self: center;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  background: rgba(15, 5, 30, 0.94);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(123, 63, 160, 0.35);
+  border-radius: 12px;
+  padding: 6px 10px;
+  display: flex; align-items: center; gap: 6px;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.55), 0 1px 0 rgba(255,255,255,0.04) inset;
+  font-family: 'Montserrat', sans-serif;
+  margin-bottom: 14px;
+  animation: febIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes febIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.feb-group {
+  display: flex; align-items: center; gap: 3px;
+}
+/* Modo-condicional: nota oculta cosas de comunicado y viceversa */
+.floating-editor-bar [data-show="nota"] { display: none; }
+body.mode-membrete .floating-editor-bar [data-show="nota"] { display: inline-flex; }
+.floating-editor-bar [data-show="com"] { display: none; }
+body.mode-comunicado .floating-editor-bar [data-show="com"] { display: inline-flex; }
+.feb-btn, .feb-size {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border: 0;
+  padding: 5px 9px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.12s;
+  min-width: 28px; height: 28px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: 'Montserrat', sans-serif;
+}
+.feb-btn { font-size: 13px; }
+.feb-btn:hover, .feb-size:hover {
+  background: rgba(123, 63, 160, 0.3);
+  color: #fff;
+}
+.feb-btn:active, .feb-size:active { transform: scale(0.92); }
+.feb-btn.active, .feb-size.active {
+  background: linear-gradient(135deg, #7b3fa0, #5a2d82);
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(123, 63, 160, 0.5);
+}
+.feb-size {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  padding: 0 8px;
+}
+.feb-size--sm { font-size: 11px; }
+.feb-size--md { font-size: 14px; }
+.feb-size--lg { font-size: 17px; }
+.feb-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.42);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 4px 0 2px;
+  white-space: nowrap;
+}
+.feb-sep {
+  width: 1px; height: 22px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0 4px;
+}
+.feb-ig-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(34, 197, 94, 0.18);
+  color: #86efac;
+  font-size: 11px; font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 6px;
+  letter-spacing: 0.03em;
+  transition: background 0.3s, color 0.3s;
+  white-space: nowrap;
+}
+.feb-ig-chip strong { font-weight: 800; }
+.feb-ig-chip.shrink {
+  background: rgba(245, 158, 11, 0.22);
+  color: #fcd34d;
+}
+.feb-ig-chip.shrink-hard {
+  background: rgba(248, 113, 113, 0.22);
+  color: #fca5a5;
+}
+/* Mobile: compactar más */
+@media (max-width: 768px) {
+  .floating-editor-bar {
+    top: 4px;
+    padding: 4px 6px;
+    gap: 3px;
+    border-radius: 9px;
+  }
+  .feb-label { display: none; }
+  .feb-sep { margin: 0 1px; }
+  .feb-btn, .feb-size { padding: 4px 6px; min-width: 26px; height: 26px; }
+  .feb-ig-chip { font-size: 10px; padding: 3px 7px; }
+}
+
 .preview-label {
   display: flex; align-items: center; gap: 10px;
   margin-bottom: 20px; align-self: flex-start;
@@ -3200,6 +3312,38 @@ Asimismo, se adjunta como Anexo I el desarrollo de fundamentos técnicos, juríd
         <button class="zoom-btn" onclick="zoomIn()" aria-label="Aumentar zoom">+</button>
         <button class="zoom-btn" onclick="zoomFit()" aria-label="Ajustar al ancho" title="Ajustar al ancho" style="font-size:13px;">⤢</button>
       </div>
+    </div>
+
+    <!-- FLOATING EDITOR BAR (estilo Word/Docs, siempre visible sobre el canvas) -->
+    <div class="floating-editor-bar" id="floatingEditorBar" role="toolbar" aria-label="Editor de texto">
+      <!-- Format buttons: solo NOTA (la nota body es contenteditable) -->
+      <div class="feb-group" data-show="nota">
+        <button type="button" class="feb-btn" data-cmd="bold" title="Negrita (Ctrl+B)"><b>B</b></button>
+        <button type="button" class="feb-btn" data-cmd="italic" title="Cursiva (Ctrl+I)"><em>I</em></button>
+        <button type="button" class="feb-btn" data-cmd="underline" title="Subrayado (Ctrl+U)"><u>U</u></button>
+        <span class="feb-sep"></span>
+      </div>
+      <!-- Tamaño del cuerpo (universal: cambia el valor según mode) -->
+      <div class="feb-group">
+        <span class="feb-label">Cuerpo</span>
+        <button type="button" class="feb-size feb-size--sm" data-target="body" data-size-nota="11" data-size-com="11" title="Chico">A</button>
+        <button type="button" class="feb-size feb-size--md" data-target="body" data-size-nota="12" data-size-com="13" title="Normal">A</button>
+        <button type="button" class="feb-size feb-size--lg" data-target="body" data-size-nota="14" data-size-com="15" title="Grande">A</button>
+      </div>
+      <!-- Tamaño del título: solo COMUNICADO -->
+      <span class="feb-sep" data-show="com"></span>
+      <div class="feb-group" data-show="com">
+        <span class="feb-label">Título</span>
+        <button type="button" class="feb-size feb-size--sm" data-target="comTitulo" data-size="14" title="Pequeño">A</button>
+        <button type="button" class="feb-size feb-size--md" data-target="comTitulo" data-size="16" title="Normal">A</button>
+        <button type="button" class="feb-size feb-size--lg" data-target="comTitulo" data-size="18" title="Destacado">A</button>
+      </div>
+      <!-- Chip de fit IG en vivo: solo COMUNICADO -->
+      <span class="feb-sep" data-show="com"></span>
+      <span class="feb-ig-chip" data-show="com" id="febIgChip" title="Tamaño del cuerpo que va a usar la imagen de Instagram">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
+        IG · <strong id="febIgSize">26pt</strong>
+      </span>
     </div>
 
     <!-- A4 DOCUMENT -->
@@ -5109,6 +5253,7 @@ function switchMode(mode) {
     document.getElementById('modeTabMembrete').classList.toggle('active', mode === 'membrete');
     document.getElementById('modeTabComunicado').classList.toggle('active', mode === 'comunicado');
     if (mode === 'comunicado') updateComunicadoPreview(); else updatePreview();
+    if (typeof updateFloatingEditorBar === 'function') updateFloatingEditorBar();
     return;
   }
   currentMode = mode;
@@ -5133,6 +5278,7 @@ function switchMode(mode) {
     document.getElementById('modeTabMembrete').classList.toggle('active', mode === 'membrete');
     document.getElementById('modeTabComunicado').classList.toggle('active', mode === 'comunicado');
     if (mode === 'comunicado') updateComunicadoPreview(); else updatePreview();
+    if (typeof updateFloatingEditorBar === 'function') updateFloatingEditorBar();
 
     // 3. Animar ENTRADA del nuevo modo
     if (preview) {
@@ -5186,6 +5332,8 @@ function setTextSize(key, size) {
   } else if (typeof updateComunicadoPreview === 'function') {
     updateComunicadoPreview();
   }
+  // Sincronizar toolbar flotante
+  if (typeof updateFloatingEditorBar === 'function') updateFloatingEditorBar();
   if (typeof scheduleSave === 'function') scheduleSave();
 }
 
@@ -5197,6 +5345,158 @@ function restoreTextSizes(sizes) {
     currentTextSizes = { ...TEXT_SIZE_DEFAULTS };
   }
   applyTextSizes();
+  if (typeof updateFloatingEditorBar === 'function') updateFloatingEditorBar();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   FLOATING EDITOR BAR (estilo Word/Docs)
+   ════════════════════════════════════════════════════════════════ */
+function bindFloatingEditorBar() {
+  const bar = document.getElementById('floatingEditorBar');
+  if (!bar || bar._bound) return;
+  bar._bound = true;
+
+  // Format buttons (B/I/U) — solo para nota body (contenteditable)
+  bar.querySelectorAll('[data-cmd]').forEach(btn => {
+    btn.addEventListener('mousedown', e => e.preventDefault()); // no robar focus
+    btn.addEventListener('click', () => {
+      if (typeof applyFormat === 'function') applyFormat(btn.dataset.cmd);
+      updateFloatingEditorBar();
+    });
+  });
+
+  // Body size
+  bar.querySelectorAll('[data-target="body"]').forEach(btn => {
+    btn.addEventListener('mousedown', e => e.preventDefault());
+    btn.addEventListener('click', () => {
+      const isCom = currentMode === 'comunicado';
+      const size = parseFloat(isCom ? btn.dataset.sizeCom : btn.dataset.sizeNota);
+      setTextSize(isCom ? 'comBody' : 'notaBody', size);
+    });
+  });
+
+  // Título comunicado
+  bar.querySelectorAll('[data-target="comTitulo"]').forEach(btn => {
+    btn.addEventListener('mousedown', e => e.preventDefault());
+    btn.addEventListener('click', () => setTextSize('comTitulo', parseFloat(btn.dataset.size)));
+  });
+
+  // Listener en cuerpo del comunicado para actualizar IG fit en tiempo real (debounced)
+  ['comunicadoCuerpo', 'comunicadoTitulo', 'comunicadoSubtitulo', 'comunicadoLinkLabel', 'comunicadoLinkUrl'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      clearTimeout(bar._igTimer);
+      bar._igTimer = setTimeout(updateFloatingEditorBar, 220);
+    });
+  });
+
+  updateFloatingEditorBar();
+}
+
+function updateFloatingEditorBar() {
+  const bar = document.getElementById('floatingEditorBar');
+  if (!bar) return;
+  const isCom = currentMode === 'comunicado';
+  const bodySize = isCom ? currentTextSizes.comBody : currentTextSizes.notaBody;
+  const titleSize = currentTextSizes.comTitulo;
+
+  // Active state body
+  bar.querySelectorAll('[data-target="body"]').forEach(btn => {
+    const expected = parseFloat(isCom ? btn.dataset.sizeCom : btn.dataset.sizeNota);
+    btn.classList.toggle('active', expected === bodySize);
+  });
+  // Active state título
+  bar.querySelectorAll('[data-target="comTitulo"]').forEach(btn => {
+    btn.classList.toggle('active', parseFloat(btn.dataset.size) === titleSize);
+  });
+
+  // Active state B/I/U
+  if (typeof document.queryCommandState === 'function') {
+    bar.querySelectorAll('[data-cmd]').forEach(btn => {
+      try { btn.classList.toggle('active', document.queryCommandState(btn.dataset.cmd)); }
+      catch { /* ignore */ }
+    });
+  }
+
+  // Live IG fit chip
+  if (isCom) {
+    const result = predictIGBodySize();
+    const chipSize = document.getElementById('febIgSize');
+    const chip = document.getElementById('febIgChip');
+    if (chipSize) chipSize.textContent = result.size + 'pt';
+    if (chip) {
+      chip.classList.remove('shrink', 'shrink-hard');
+      if (result.overflow) {
+        chip.classList.add('shrink-hard');
+        chip.title = '⚠ El comunicado es muy largo aún en el tamaño mínimo. Considerá acortar.';
+      } else if (result.shrinkPercent >= 15) {
+        chip.classList.add('shrink-hard');
+        chip.title = 'IG va a reducir el cuerpo ' + result.shrinkPercent + '% para que entre';
+      } else if (result.shrinkPercent > 0) {
+        chip.classList.add('shrink');
+        chip.title = 'IG va a reducir el cuerpo ' + result.shrinkPercent + '% para que entre';
+      } else {
+        chip.title = '✓ Entra perfecto en 1080×1440 al tamaño normal';
+      }
+    }
+  }
+}
+
+// Predice qué tamaño usaría el cuerpo en la imagen IG con el contenido actual.
+// Mismo algoritmo que renderIGCanvasNative, sin renderizar a canvas real.
+function predictIGBodySize() {
+  const cuerpo = (document.getElementById('comunicadoCuerpo')?.value || '').trim();
+  if (!cuerpo) return { size: 26, shrinkPercent: 0, overflow: false };
+  // Usamos un canvas off-screen solo para measureText
+  if (!predictIGBodySize._ctx) {
+    predictIGBodySize._ctx = document.createElement('canvas').getContext('2d');
+  }
+  const ctx = predictIGBodySize._ctx;
+  const W = 1080;
+  const CW = W - 160;
+  const paragraphs = cuerpo.split(/\n\s*\n/).map(p => p.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean);
+
+  // Estimar espacio disponible para el body
+  const titulo = (document.getElementById('comunicadoTitulo')?.value || '').trim();
+  const subtitulo = (document.getElementById('comunicadoSubtitulo')?.value || '').trim();
+  const linkLabel = (document.getElementById('comunicadoLinkLabel')?.value || '').trim();
+  const linkUrl = (document.getElementById('comunicadoLinkUrl')?.value || '').trim();
+
+  const BANNER_H = 220;
+  const FOOTER_H = 200;
+  const titleSize = 48;
+  ctx.font = '800 ' + titleSize + 'px MontserratEmbed, Montserrat, sans-serif';
+  const titleLines = wrapTextCanvas(ctx, titulo || 'Título', CW);
+  const titleH = titleLines.length * titleSize * 1.18 + 18;
+  const subH = subtitulo ? (28 * 1.3 + 32) : 16;
+  const linksH = (linkLabel || linkUrl) ? 80 : 0;
+
+  const bodyTopY = BANNER_H + 56 + titleH + subH;
+  const bodyMaxY = 1440 - FOOTER_H - linksH - 20;
+  const available = Math.max(0, bodyMaxY - bodyTopY);
+
+  const baseSize = 26;
+  let size = baseSize;
+  let overflow = false;
+  for (let trySize = baseSize; trySize >= 16; trySize--) {
+    ctx.font = '400 ' + trySize + 'px MontserratEmbed, Montserrat, sans-serif';
+    const lh = trySize * 1.55;
+    const pg = lh * 0.55;
+    let total = 0;
+    paragraphs.forEach((p, i) => {
+      const lines = wrapTextCanvas(ctx, p, CW);
+      total += lines.length * lh;
+      if (i < paragraphs.length - 1) total += pg;
+    });
+    if (total <= available) { size = trySize; break; }
+    if (trySize === 16) {
+      size = 16;
+      overflow = true;
+    }
+  }
+  const shrinkPercent = Math.round((1 - size / baseSize) * 100);
+  return { size, shrinkPercent, overflow };
 }
 
 function updateComunicadoPreview() {
@@ -5950,6 +6250,205 @@ async function loadMontserratFonts() {
   return out;
 }
 
+// Carga Montserrat (Regular/Bold/MediumItalic) en document.fonts como 'MontserratEmbed'.
+// Lo usamos para el render IG nativo a canvas — garantiza que Canvas 2D
+// renderice con la fuente correcta (mismo problema de html2canvas con web fonts).
+let _montserratEmbedPromise = null;
+async function ensureMontserratEmbedded() {
+  if (_montserratEmbedPromise) return _montserratEmbedPromise;
+  _montserratEmbedPromise = (async () => {
+    const fonts = await loadMontserratFonts();
+    const make = async (b64, weight, style) => {
+      const ff = new FontFace('MontserratEmbed',
+        'url(data:font/ttf;base64,' + b64 + ')',
+        { weight, style });
+      const loaded = await ff.load();
+      document.fonts.add(loaded);
+      return loaded;
+    };
+    await Promise.all([
+      make(fonts.normal, '400', 'normal'),
+      make(fonts.bold,   '700', 'normal'),
+      make(fonts.italic, '500', 'italic')
+    ]);
+    // Pre-cargar tamaños grandes que va a usar el IG
+    if (document.fonts && document.fonts.load) {
+      await Promise.all([
+        document.fonts.load('700 44px MontserratEmbed'),
+        document.fonts.load('800 48px MontserratEmbed'),
+        document.fonts.load('500 italic 28px MontserratEmbed'),
+        document.fonts.load('400 26px MontserratEmbed')
+      ]);
+    }
+    return true;
+  })();
+  return _montserratEmbedPromise;
+}
+
+// Wrap de texto a un ancho dado usando el ctx.measureText del canvas.
+// Respeta espacios duros (no rompe palabras a la mitad).
+function wrapTextCanvas(ctx, text, maxWidth) {
+  if (!text) return [];
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const test = line ? line + ' ' + word : word;
+    const w = ctx.measureText(test).width;
+    if (w > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+// Render nativo 1080×1440 a un canvas — sin html2canvas.
+async function renderIGCanvasNative({ city, titulo, subtitulo, cuerpo, linkLabel, linkUrl, blancoLogo, violetaLogo }) {
+  await ensureMontserratEmbedded();
+
+  const W = 1080, H = 1440;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Fondo blanco
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  // ── BANNER VIOLETA ──
+  const BANNER_H = 220;
+  ctx.fillStyle = '#371959';
+  ctx.fillRect(0, 0, W, BANNER_H);
+
+  // Label "COMUNICADO DE PRENSA"
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.font = '700 44px MontserratEmbed';
+  ctx.fillText('COMUNICADO', 64, 90);
+  ctx.font = '400 32px MontserratEmbed';
+  ctx.fillText('DE PRENSA', 64, 140);
+
+  // Logo blanco + city (derecha)
+  let logoBottomY = BANNER_H - 30;
+  if (blancoLogo && blancoLogo.dataUrl) {
+    const logoH = 100;
+    const logoW = logoH * (blancoLogo.w / blancoLogo.h);
+    const logoX = W - 64 - logoW;
+    const logoY = 30;
+    const img = new Image();
+    img.src = blancoLogo.dataUrl;
+    await new Promise(r => { img.onload = r; img.onerror = r; });
+    ctx.drawImage(img, logoX, logoY, logoW, logoH);
+    // City label centrada bajo el logo
+    ctx.font = '700 22px MontserratEmbed';
+    ctx.textAlign = 'center';
+    ctx.fillText(city.toUpperCase(), logoX + logoW / 2, logoY + logoH + 24);
+  }
+
+  // ── CONTENIDO ──
+  const ML = 80, MR = 80;
+  const CW = W - ML - MR;
+  const FOOTER_H = 200;
+  let y = BANNER_H + 56;
+
+  // Título (centrado, bold)
+  ctx.fillStyle = '#1a1a1a';
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'center';
+  const titleSize = 48;
+  ctx.font = '800 ' + titleSize + 'px MontserratEmbed';
+  const titleLineH = titleSize * 1.18;
+  const titleLines = wrapTextCanvas(ctx, titulo, CW);
+  titleLines.forEach(line => { ctx.fillText(line, W / 2, y); y += titleLineH; });
+  y += 18;
+
+  // Subtítulo (italic, centrado)
+  if (subtitulo) {
+    const subSize = 28;
+    ctx.font = '500 italic ' + subSize + 'px MontserratEmbed';
+    const subLineH = subSize * 1.3;
+    const subLines = wrapTextCanvas(ctx, subtitulo, CW);
+    subLines.forEach(line => { ctx.fillText(line, W / 2, y); y += subLineH; });
+    y += 32;
+  } else {
+    y += 16;
+  }
+
+  // Cuerpo (left, auto-fit si overflowea)
+  ctx.textAlign = 'left';
+  const cuerpoClean = (cuerpo || '').split(/\n\s*\n/).map(p => p.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean);
+  // Reservar espacio para links si los hay
+  const linksH = (linkLabel || linkUrl) ? 80 : 0;
+  const bodyMaxY = H - FOOTER_H - linksH - 20;
+  // Auto-fit: empezar en 26pt y bajar hasta 16pt si no entra
+  const baseBodySize = 26;
+  let bodySize = baseBodySize;
+  const computeBodyH = (fSize) => {
+    ctx.font = '400 ' + fSize + 'px MontserratEmbed';
+    const lh = fSize * 1.55;
+    const pg = lh * 0.55;
+    let total = 0;
+    cuerpoClean.forEach((p, i) => {
+      const lines = wrapTextCanvas(ctx, p, CW);
+      total += lines.length * lh;
+      if (i < cuerpoClean.length - 1) total += pg;
+    });
+    return total;
+  };
+  let bodyH = computeBodyH(bodySize);
+  let shrinkPercent = 0;
+  while (y + bodyH > bodyMaxY && bodySize > 16) {
+    bodySize -= 1;
+    bodyH = computeBodyH(bodySize);
+  }
+  if (bodySize < baseBodySize) {
+    shrinkPercent = Math.round((1 - bodySize / baseBodySize) * 100);
+  }
+  // Render del body con el size final
+  const finalLineH = bodySize * 1.55;
+  const paraGap = finalLineH * 0.55;
+  ctx.font = '400 ' + bodySize + 'px MontserratEmbed';
+  ctx.fillStyle = '#1a1a1a';
+  cuerpoClean.forEach((p, i) => {
+    const lines = wrapTextCanvas(ctx, p, CW);
+    lines.forEach(line => { ctx.fillText(line, ML, y); y += finalLineH; });
+    if (i < cuerpoClean.length - 1) y += paraGap;
+  });
+
+  // Links
+  if (linkLabel || linkUrl) {
+    y += 30;
+    if (linkLabel) {
+      ctx.font = '700 22px MontserratEmbed';
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillText(linkLabel, ML, y);
+      y += 30;
+    }
+    if (linkUrl) {
+      ctx.font = '500 22px MontserratEmbed';
+      ctx.fillStyle = '#371959';
+      ctx.fillText(linkUrl, ML, y);
+    }
+  }
+
+  // ── FOOTER (logo violeta centrado) ──
+  if (violetaLogo && violetaLogo.dataUrl) {
+    const fH = 110;
+    const fW = fH * (violetaLogo.w / violetaLogo.h);
+    const img = new Image();
+    img.src = violetaLogo.dataUrl;
+    await new Promise(r => { img.onload = r; img.onerror = r; });
+    ctx.drawImage(img, (W - fW) / 2, H - FOOTER_H + 50, fW, fH);
+  }
+
+  return { canvas, shrinkPercent };
+}
+
 async function loadImageAsDataUrl(src) {
   try {
     const blob = await fetch(src).then(r => r.blob());
@@ -6274,82 +6773,38 @@ async function exportInstagram() {
     return;
   }
 
+  // Render NATIVO con Canvas 2D + Montserrat embebido (mismo approach que el PDF nativo).
+  // html2canvas tiene el bug de superposición de caracteres con Montserrat — aquí lo evitamos
+  // dibujando texto directo con ctx.fillText sobre fuente cargada vía FontFace API.
+  showLoading('Cargando fuentes Montserrat...');
+  let blancoLogo, violetaLogo;
+  try {
+    [, blancoLogo, violetaLogo] = await Promise.all([
+      ensureMontserratEmbedded(),
+      loadImageAsDataUrl('LLA BLANCO.png'),
+      loadImageAsDataUrl('LLA VIOLETA.png')
+    ]);
+  } catch (e) {
+    hideLoading();
+    showToast('Error cargando recursos: ' + e.message, 'error', 5000);
+    return;
+  }
+
   showLoading('Generando imagen Instagram 1080×1440...');
   try {
-    // 1. Poblar el render offscreen con los valores actuales
-    const city = (document.getElementById('cityInput').value || 'RÍO NEGRO').toUpperCase();
+    const cityRaw = document.getElementById('cityInput').value || 'RÍO NEGRO';
+    const city = cityRaw.toUpperCase();
+    const subtitulo = (document.getElementById('comunicadoSubtitulo')?.value || '').trim();
     const linkLabel = document.getElementById('comunicadoLinkLabel').value.trim();
     const linkUrl = document.getElementById('comunicadoLinkUrl').value.trim();
 
-    document.getElementById('igCityLabel').textContent = city;
-    document.getElementById('igTitulo').textContent = titulo;
-    const igSubEl = document.getElementById('igSubtitulo');
-    if (igSubEl) igSubEl.textContent = (document.getElementById('comunicadoSubtitulo')?.value || '').trim();
-    document.getElementById('igCuerpo').textContent = cuerpo;
-    const linksEl = document.getElementById('igLinks');
-    if (linkLabel || linkUrl) {
-      linksEl.style.display = '';
-      linksEl.innerHTML = (linkLabel ? '<strong>' + escapeHtml(linkLabel) + '</strong><br>' : '') +
-        (linkUrl ? '<span style="color:#371959;">' + escapeHtml(linkUrl) + '</span>' : '');
-    } else {
-      linksEl.style.display = 'none';
-    }
-
-    // 2. Esperar fuentes + un tick
-    await ensureFontsLoaded();
-    await new Promise(r => setTimeout(r, 400));
-
-    // 2b. Auto-fit: si el contenido excede 1440px de alto, achicar el cuerpo
-    // progresivamente (hasta -40%) para que entre sin cortarse.
-    const el = document.getElementById('igRender');
-    const igBody = el.querySelector('.ig-body');
-    const igText = document.getElementById('igCuerpo');
-    const origBodyFontSize = igText ? getComputedStyle(igText).fontSize : null;
-    const origBodyLH = igText ? igText.style.lineHeight : '';
-    let shrinkApplied = 0;
-    if (igText && origBodyFontSize) {
-      const origPx = parseFloat(origBodyFontSize);
-      // Medir overflow
-      const innerH = igBody ? igBody.scrollHeight : 0;
-      const allowed = igBody ? igBody.clientHeight : 0;
-      if (innerH > allowed + 4) {
-        // Buscar el factor mínimo que hace que entre (entre 0.6 y 1.0)
-        for (let factor = 0.95; factor >= 0.6; factor -= 0.05) {
-          igText.style.fontSize = (origPx * factor) + 'px';
-          igText.style.lineHeight = '1.45';
-          // forzar reflow
-          void igBody.offsetHeight;
-          if (igBody.scrollHeight <= igBody.clientHeight + 4) {
-            shrinkApplied = Math.round((1 - factor) * 100);
-            break;
-          }
-        }
-        if (igBody.scrollHeight > igBody.clientHeight + 4) {
-          // Llegamos al 60% y todavía no entra — avisar
-          shrinkApplied = -1;
-        }
-      }
-    }
-
-    // 3. Capturar con html2canvas
-    const canvas = await html2canvas(el, {
-      width: 1080,
-      height: 1440,
-      scale: 1,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      logging: false
+    const { canvas, shrinkPercent } = await renderIGCanvasNative({
+      city, titulo, subtitulo, cuerpo, linkLabel, linkUrl, blancoLogo, violetaLogo
     });
 
-    // Restaurar fuente original
-    if (igText && origBodyFontSize) {
-      igText.style.fontSize = '';
-      igText.style.lineHeight = origBodyLH;
-    }
-
-    // 4. Descargar como PNG
+    // Descargar como PNG
     const dataUrl = canvas.toDataURL('image/png', 1.0);
-    const cityClean = (document.getElementById('cityInput').value || 'RioNegro').replace(/\s+/g,'-');
+    const cityClean = cityRaw.replace(/\s+/g, '-');
     const filename = 'Comunicado-IG-' + cityClean + '.png';
     const link = document.createElement('a');
     link.download = filename;
@@ -6358,15 +6813,12 @@ async function exportInstagram() {
     link.click();
     document.body.removeChild(link);
 
-    // 5. Log activity
     if (typeof logActivity === 'function') {
-      logActivity('export_instagram', { city: document.getElementById('cityInput').value, titulo: titulo.slice(0, 80) });
+      logActivity('export_instagram', { city: cityRaw, titulo: titulo.slice(0, 80) });
     }
 
-    if (shrinkApplied > 0) {
-      showToast('✓ Imagen IG lista — texto reducido ' + shrinkApplied + '% para que entre en 1080×1440', 'success', 4500);
-    } else if (shrinkApplied < 0) {
-      showToast('⚠ El comunicado es muy largo para 1 imagen IG — recomendado: usar el PDF o acortar el cuerpo', 'error', 6000);
+    if (shrinkPercent > 0) {
+      showToast('✓ Imagen IG lista — texto reducido ' + shrinkPercent + '% para que entre', 'success', 4500);
     } else {
       showToast('✓ Imagen Instagram lista (1080×1440)', 'success', 3000);
     }
@@ -7140,6 +7592,7 @@ exportJPG = function() {
   bindKeyboardShortcuts();
   bindCtrlScrollZoom();
   bindCuerpoUrlHint();
+  bindFloatingEditorBar();
   setupShareButton();
   autosizeBody();
   updateBodyCounter();
