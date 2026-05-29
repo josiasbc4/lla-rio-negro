@@ -5783,11 +5783,15 @@ async function exportComunicadoPDFNative() {
       }
     }
 
-    // Footer en la última página
-    drawFooter();
+    // Footer en TODAS las páginas (el águila violeta cierra cada hoja)
+    const pageCount = pdf.internal.getNumberOfPages();
+    for (let p = 1; p <= pageCount; p++) {
+      pdf.setPage(p);
+      drawFooter();
+    }
+    pdf.setPage(pageCount);
 
     // Metadatos
-    const pageCount = pdf.internal.getNumberOfPages();
     pdf.setProperties({
       title: 'Comunicado LLA - ' + cityRaw,
       subject: titulo,
