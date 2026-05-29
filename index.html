@@ -3406,7 +3406,7 @@ Asimismo, se adjunta como Anexo I el desarrollo de fundamentos técnicos, juríd
 
         <!-- HEADER BANDA VIOLETA -->
         <div class="doc-comunicado-header">
-          <div class="doc-comunicado-label">COMUNICADO DE PRENSA</div>
+          <div class="doc-comunicado-label">COMUNICADO OFICIAL</div>
           <div class="doc-comunicado-brand">
             <img id="docComLogo" src="LLA BLANCO.png" alt="La Libertad Avanza">
             <div class="doc-comunicado-brand-city" id="docComCityLabel">BARILOCHE</div>
@@ -3431,7 +3431,7 @@ Asimismo, se adjunta como Anexo I el desarrollo de fundamentos técnicos, juríd
       <!-- ══ RENDER INSTAGRAM (legacy offscreen — el export real es nativo a canvas 1080×1350) ══ -->
       <div class="ig-render" id="igRender" aria-hidden="true">
         <div class="ig-header">
-          <div class="ig-label">Comunicado<br>de prensa</div>
+          <div class="ig-label">Comunicado<br>oficial</div>
           <div class="ig-brand">
             <img src="LLA BLANCO.png" alt="La Libertad Avanza">
             <div class="ig-brand-city" id="igCityLabel">RÍO NEGRO</div>
@@ -6371,7 +6371,7 @@ async function renderIGNative({ city, titulo, subtitulo, cuerpo, linkLabel, link
     ctx.fillStyle = '#371959'; ctx.fillRect(0, 0, W, BANNER_H);
     ctx.fillStyle = '#ffffff'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
     ctx.font = '700 42px MontserratEmbed'; ctx.fillText('COMUNICADO', 64, 82);
-    ctx.font = '400 30px MontserratEmbed'; ctx.fillText('DE PRENSA', 64, 124);
+    ctx.font = '400 30px MontserratEmbed'; ctx.fillText('OFICIAL', 64, 124);
     if (blancoImg) {
       const logoH = 90, logoW = logoH * (blancoImg.naturalWidth / blancoImg.naturalHeight);
       const logoX = W - 64 - logoW, logoY = 26;
@@ -6384,13 +6384,6 @@ async function renderIGNative({ city, titulo, subtitulo, cuerpo, linkLabel, link
       if (cx + cw / 2 > rightEdge) cx = rightEdge - cw / 2;
       if (cx - cw / 2 < 28) cx = 28 + cw / 2;
       ctx.textAlign = 'center'; ctx.fillText(cityText, cx, logoY + logoH + 20);
-    }
-    // Contador de slide (solo si hay carrusel)
-    if (total > 1) {
-      ctx.font = '700 19px MontserratEmbed';
-      ctx.fillStyle = 'rgba(255,255,255,0.8)';
-      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-      ctx.fillText((s + 1) + ' / ' + total, 64, BANNER_H - 18);
     }
 
     // ── Título + subtítulo (solo slide 0) ──
@@ -6515,11 +6508,11 @@ async function exportComunicadoPDFNative() {
     function drawBanner() {
       pdf.setFillColor(...VIOLET);
       pdf.rect(0, 0, PAGE_W, BANNER_H, 'F');
-      // "COMUNICADO DE PRENSA"
+      // "COMUNICADO OFICIAL"
       pdf.setFont('Montserrat', 'bold');
       pdf.setFontSize(13);
       pdf.setTextColor(255, 255, 255);
-      pdf.text('COMUNICADO DE PRENSA', ML, 17);
+      pdf.text('COMUNICADO OFICIAL', ML, 17);
       // Logo blanco + ciudad: agrupados a la derecha y centrados entre sí
       pdf.setFont('Montserrat', 'bold');
       pdf.setFontSize(7);
