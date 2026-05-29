@@ -6582,6 +6582,14 @@ async function exportComunicadoPDFNative() {
     const bodyLineH = lh(bodySize, 1.55);
     const paraGap = bodyLineH * 0.65;
 
+    // Restaura el estilo del cuerpo (drawBanner deja el estado en blanco/bold/7pt).
+    // Sin esto, el texto del cuerpo en la página 2+ sale BLANCO sobre fondo blanco = invisible.
+    const applyBodyStyle = () => {
+      pdf.setFont('Montserrat', 'normal');
+      pdf.setFontSize(bodySize);
+      pdf.setTextColor(...INK);
+    };
+
     const paragraphs = cuerpo ? cuerpo.split(/\n\s*\n/).map(p => p.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean) : [];
     paragraphs.forEach((para, idx) => {
       const lines = pdf.splitTextToSize(para, CW);
@@ -6589,6 +6597,7 @@ async function exportComunicadoPDFNative() {
         if (y + bodyLineH > BODY_BOTTOM) {
           pdf.addPage();
           drawBanner();
+          applyBodyStyle();   // ← re-aplicar negro/normal/bodySize tras el banner
           y = BANNER_H + 12;
         }
         pdf.text(line, ML, y);
