@@ -2355,10 +2355,10 @@ body.mode-comunicado .btn-only-membrete { display: none !important; }
 }
 .btn-instagram:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(253,29,29,0.35); }
 
-/* Render offscreen del Instagram (1080×1440) */
+/* Render offscreen del Instagram (legacy html2canvas — ya no se usa, el export es nativo a canvas 1080×1350) */
 .ig-render {
   position: fixed; left: -20000px; top: 0;
-  width: 1080px; height: 1440px;
+  width: 1080px; height: 1350px;
   background: #fff;
   font-family: 'Montserrat', sans-serif;
   display: flex; flex-direction: column;
@@ -2847,7 +2847,7 @@ body.mode-comunicado .doc-comunicado-wrap { display: flex; flex-direction: colum
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
       <span class="btn-label">Compartir</span>
     </button>
-    <button class="btn btn-glass btn-instagram" onclick="exportInstagram()" aria-label="Exportar Instagram 1080×1440" title="Generar imagen 1080×1440 para Instagram">
+    <button class="btn btn-glass btn-instagram" onclick="exportInstagram()" aria-label="Exportar Instagram 1080×1350" title="Generar imagen 1080×1350 (4:5) para Instagram">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
       <span class="btn-label">Instagram</span>
     </button>
@@ -3342,7 +3342,7 @@ Asimismo, se adjunta como Anexo I el desarrollo de fundamentos técnicos, juríd
       <span class="feb-sep" data-show="com"></span>
       <span class="feb-ig-chip" data-show="com" id="febIgChip" title="Tamaño del cuerpo que va a usar la imagen de Instagram">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
-        IG · <strong id="febIgSize">26pt</strong>
+        IG · <strong id="febIgSize">28pt</strong>
       </span>
     </div>
 
@@ -3428,7 +3428,7 @@ Asimismo, se adjunta como Anexo I el desarrollo de fundamentos técnicos, juríd
 
       </div><!-- /doc-comunicado-wrap -->
 
-      <!-- ══ RENDER INSTAGRAM 1080x1440 (offscreen, solo para export) ══ -->
+      <!-- ══ RENDER INSTAGRAM (legacy offscreen — el export real es nativo a canvas 1080×1350) ══ -->
       <div class="ig-render" id="igRender" aria-hidden="true">
         <div class="ig-header">
           <div class="ig-label">Comunicado<br>de prensa</div>
@@ -5437,24 +5437,33 @@ function updateFloatingEditorBar() {
         chip.classList.add('shrink');
         chip.title = 'IG va a reducir el cuerpo ' + result.shrinkPercent + '% para que entre';
       } else {
-        chip.title = '✓ Entra perfecto en 1080×1440 al tamaño normal';
+        chip.title = '✓ Entra perfecto en 1080×1350 al tamaño normal';
       }
     }
   }
 }
 
+// ─── Dimensiones de export para redes (verificado mayo 2026) ───
+// Instagram feed: 4:5 = 1080×1350 (recomendado, no se recorta en el feed).
+// Antes usábamos 1080×1440 (3:4, el ratio del grid) → IG recortaba arriba/abajo.
+const IG_W = 1080;
+const IG_H = 1350;
+const IG_BANNER_H = 200;
+const IG_FOOTER_H = 175;
+const IG_BASE_BODY = 28;   // tamaño base del cuerpo (subido de 26 → 28, refs oficiales usan fuente más grande)
+const IG_MIN_BODY = 16;
+
 // Predice qué tamaño usaría el cuerpo en la imagen IG con el contenido actual.
 // Mismo algoritmo que renderIGCanvasNative, sin renderizar a canvas real.
 function predictIGBodySize() {
   const cuerpo = (document.getElementById('comunicadoCuerpo')?.value || '').trim();
-  if (!cuerpo) return { size: 26, shrinkPercent: 0, overflow: false };
+  if (!cuerpo) return { size: IG_BASE_BODY, shrinkPercent: 0, overflow: false };
   // Usamos un canvas off-screen solo para measureText
   if (!predictIGBodySize._ctx) {
     predictIGBodySize._ctx = document.createElement('canvas').getContext('2d');
   }
   const ctx = predictIGBodySize._ctx;
-  const W = 1080;
-  const CW = W - 160;
+  const CW = IG_W - 160;
   const paragraphs = cuerpo.split(/\n\s*\n/).map(p => p.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean);
 
   // Estimar espacio disponible para el body
@@ -5463,8 +5472,6 @@ function predictIGBodySize() {
   const linkLabel = (document.getElementById('comunicadoLinkLabel')?.value || '').trim();
   const linkUrl = (document.getElementById('comunicadoLinkUrl')?.value || '').trim();
 
-  const BANNER_H = 220;
-  const FOOTER_H = 200;
   const titleSize = 48;
   ctx.font = '800 ' + titleSize + 'px MontserratEmbed, Montserrat, sans-serif';
   const titleLines = wrapTextCanvas(ctx, titulo || 'Título', CW);
@@ -5472,14 +5479,14 @@ function predictIGBodySize() {
   const subH = subtitulo ? (28 * 1.3 + 32) : 16;
   const linksH = (linkLabel || linkUrl) ? 80 : 0;
 
-  const bodyTopY = BANNER_H + 56 + titleH + subH;
-  const bodyMaxY = 1440 - FOOTER_H - linksH - 20;
+  const bodyTopY = IG_BANNER_H + 56 + titleH + subH;
+  const bodyMaxY = IG_H - IG_FOOTER_H - linksH - 20;
   const available = Math.max(0, bodyMaxY - bodyTopY);
 
-  const baseSize = 26;
+  const baseSize = IG_BASE_BODY;
   let size = baseSize;
   let overflow = false;
-  for (let trySize = baseSize; trySize >= 16; trySize--) {
+  for (let trySize = baseSize; trySize >= IG_MIN_BODY; trySize--) {
     ctx.font = '400 ' + trySize + 'px MontserratEmbed, Montserrat, sans-serif';
     const lh = trySize * 1.55;
     const pg = lh * 0.55;
@@ -5490,8 +5497,8 @@ function predictIGBodySize() {
       if (i < paragraphs.length - 1) total += pg;
     });
     if (total <= available) { size = trySize; break; }
-    if (trySize === 16) {
-      size = 16;
+    if (trySize === IG_MIN_BODY) {
+      size = IG_MIN_BODY;
       overflow = true;
     }
   }
@@ -6306,11 +6313,11 @@ function wrapTextCanvas(ctx, text, maxWidth) {
   return lines;
 }
 
-// Render nativo 1080×1440 a un canvas — sin html2canvas.
+// Render nativo 1080×1350 (4:5, IG feed) a un canvas — sin html2canvas.
 async function renderIGCanvasNative({ city, titulo, subtitulo, cuerpo, linkLabel, linkUrl, blancoLogo, violetaLogo }) {
   await ensureMontserratEmbedded();
 
-  const W = 1080, H = 1440;
+  const W = IG_W, H = IG_H;
   const canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
@@ -6320,7 +6327,7 @@ async function renderIGCanvasNative({ city, titulo, subtitulo, cuerpo, linkLabel
   ctx.fillRect(0, 0, W, H);
 
   // ── BANNER VIOLETA ──
-  const BANNER_H = 220;
+  const BANNER_H = IG_BANNER_H;
   ctx.fillStyle = '#371959';
   ctx.fillRect(0, 0, W, BANNER_H);
 
@@ -6328,33 +6335,46 @@ async function renderIGCanvasNative({ city, titulo, subtitulo, cuerpo, linkLabel
   ctx.fillStyle = '#ffffff';
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
-  ctx.font = '700 44px MontserratEmbed';
-  ctx.fillText('COMUNICADO', 64, 90);
-  ctx.font = '400 32px MontserratEmbed';
-  ctx.fillText('DE PRENSA', 64, 140);
+  ctx.font = '700 42px MontserratEmbed';
+  ctx.fillText('COMUNICADO', 64, 82);
+  ctx.font = '400 30px MontserratEmbed';
+  ctx.fillText('DE PRENSA', 64, 124);
 
   // Logo blanco + city (derecha)
-  let logoBottomY = BANNER_H - 30;
   if (blancoLogo && blancoLogo.dataUrl) {
-    const logoH = 100;
+    const logoH = 90;
     const logoW = logoH * (blancoLogo.w / blancoLogo.h);
     const logoX = W - 64 - logoW;
-    const logoY = 30;
+    const logoY = 26;
     const img = new Image();
     img.src = blancoLogo.dataUrl;
     await new Promise(r => { img.onload = r; img.onerror = r; });
     ctx.drawImage(img, logoX, logoY, logoW, logoH);
-    // City label centrada bajo el logo
-    ctx.font = '700 22px MontserratEmbed';
+    // City label centrada bajo el logo — auto-shrink + clamp para no cortarse en el borde
+    const cityText = city.toUpperCase();
+    let citySize = 21;
+    const rightEdge = W - 28;
+    const maxCityW = rightEdge - 28; // límite duro de ancho
+    ctx.font = '700 ' + citySize + 'px MontserratEmbed';
+    let cityW = ctx.measureText(cityText).width;
+    while (cityW > maxCityW && citySize > 12) {
+      citySize -= 1;
+      ctx.font = '700 ' + citySize + 'px MontserratEmbed';
+      cityW = ctx.measureText(cityText).width;
+    }
+    // Centrar bajo el logo; si se pasa por la derecha, anclar el borde derecho
+    let cityCenterX = logoX + logoW / 2;
+    if (cityCenterX + cityW / 2 > rightEdge) cityCenterX = rightEdge - cityW / 2;
+    if (cityCenterX - cityW / 2 < 28) cityCenterX = 28 + cityW / 2;
     ctx.textAlign = 'center';
-    ctx.fillText(city.toUpperCase(), logoX + logoW / 2, logoY + logoH + 24);
+    ctx.fillText(cityText, cityCenterX, logoY + logoH + 20);
   }
 
   // ── CONTENIDO ──
   const ML = 80, MR = 80;
   const CW = W - ML - MR;
-  const FOOTER_H = 200;
-  let y = BANNER_H + 56;
+  const FOOTER_H = IG_FOOTER_H;
+  let y = BANNER_H + 48;
 
   // Título (centrado, bold)
   ctx.fillStyle = '#1a1a1a';
@@ -6385,8 +6405,8 @@ async function renderIGCanvasNative({ city, titulo, subtitulo, cuerpo, linkLabel
   // Reservar espacio para links si los hay
   const linksH = (linkLabel || linkUrl) ? 80 : 0;
   const bodyMaxY = H - FOOTER_H - linksH - 20;
-  // Auto-fit: empezar en 26pt y bajar hasta 16pt si no entra
-  const baseBodySize = 26;
+  // Auto-fit: empezar en IG_BASE_BODY y bajar hasta IG_MIN_BODY si no entra
+  const baseBodySize = IG_BASE_BODY;
   let bodySize = baseBodySize;
   const computeBodyH = (fSize) => {
     ctx.font = '400 ' + fSize + 'px MontserratEmbed';
@@ -6402,7 +6422,7 @@ async function renderIGCanvasNative({ city, titulo, subtitulo, cuerpo, linkLabel
   };
   let bodyH = computeBodyH(bodySize);
   let shrinkPercent = 0;
-  while (y + bodyH > bodyMaxY && bodySize > 16) {
+  while (y + bodyH > bodyMaxY && bodySize > IG_MIN_BODY) {
     bodySize -= 1;
     bodyH = computeBodyH(bodySize);
   }
@@ -6759,7 +6779,7 @@ async function exportPDF() {
   hideLoading();
 }
 
-// ═══════════════ EXPORT INSTAGRAM 1080×1440 ═══════════════
+// ═══════════════ EXPORT INSTAGRAM 1080×1350 (4:5) ═══════════════
 async function exportInstagram() {
   // Validar que estamos en modo comunicado
   if (currentMode !== 'comunicado') {
@@ -6790,7 +6810,7 @@ async function exportInstagram() {
     return;
   }
 
-  showLoading('Generando imagen Instagram 1080×1440...');
+  showLoading('Generando imagen Instagram 1080×1350...');
   try {
     const cityRaw = document.getElementById('cityInput').value || 'RÍO NEGRO';
     const city = cityRaw.toUpperCase();
@@ -6820,7 +6840,7 @@ async function exportInstagram() {
     if (shrinkPercent > 0) {
       showToast('✓ Imagen IG lista — texto reducido ' + shrinkPercent + '% para que entre', 'success', 4500);
     } else {
-      showToast('✓ Imagen Instagram lista (1080×1440)', 'success', 3000);
+      showToast('✓ Imagen Instagram lista (1080×1350)', 'success', 3000);
     }
   } catch (e) {
     console.error('Export IG falló:', e);
