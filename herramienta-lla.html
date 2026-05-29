@@ -535,6 +535,48 @@ button:focus-visible, .btn:focus-visible, .city-btn:focus-visible {
 .draft-card .draft-name,
 .draft-card .draft-meta,
 .draft-card .draft-actions { padding-right: 50px; }
+
+/* ─── Selector de tamaño + badge "XXpt" en campos de texto ─── */
+.field-head {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.field-head label { margin-bottom: 0; flex: 0 0 auto; }
+.field-head .size-badge {
+  display: inline-flex; align-items: center;
+  background: rgba(123,63,160,0.22);
+  color: #d8b4fe;
+  font-size: 9px; font-weight: 700;
+  padding: 2px 6px; border-radius: 4px;
+  letter-spacing: 0.04em;
+  font-family: 'Montserrat', sans-serif;
+  text-transform: none;
+}
+.field-head .size-selector {
+  display: inline-flex; gap: 2px; margin-left: auto;
+  background: rgba(0,0,0,0.25);
+  padding: 2px;
+  border-radius: 7px;
+}
+.field-head .size-btn {
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+  border: 0; padding: 4px 9px;
+  border-radius: 5px;
+  font-size: 10px; font-weight: 700;
+  font-family: 'Montserrat', sans-serif;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: background 0.18s, color 0.18s, transform 0.12s;
+}
+.field-head .size-btn:hover { color: #fff; background: rgba(255,255,255,0.06); }
+.field-head .size-btn:active { transform: scale(0.94); }
+.field-head .size-btn.active {
+  background: linear-gradient(135deg, #7b3fa0, #5a2d82);
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(123,63,160,0.4);
+}
 /* Checkmark animado: el path del check se redibuja al guardar */
 .badge-saved svg polyline {
   stroke-dasharray: 16;
@@ -1980,7 +2022,7 @@ body.exporting .doc-footer {
 .doc-text-blocks { margin-bottom: 14px; }
 
 .doc-text-block {
-  font-size: 12px; line-height: 1.65;
+  font-size: var(--nota-body-size, 12px); line-height: 1.65;
   text-align: justify;
   margin-bottom: 10px;
   color: #111;
@@ -2312,7 +2354,7 @@ body.mode-comunicado .doc-comunicado-wrap { display: flex; flex-direction: colum
 }
 .doc-comunicado-headline {
   font-family: 'Montserrat', sans-serif;
-  font-size: 16px; font-weight: 700;
+  font-size: var(--com-title-size, 16px); font-weight: 700;
   color: #1a1a1a; line-height: 1.4;
   margin-bottom: 10px;
   text-align: center;
@@ -2332,7 +2374,7 @@ body.mode-comunicado .doc-comunicado-wrap { display: flex; flex-direction: colum
 .doc-comunicado-subtitle:empty { display: none; }
 .doc-comunicado-text {
   font-family: 'Montserrat', sans-serif;
-  font-size: 13px; color: #1a1a1a;
+  font-size: var(--com-body-size, 13px); color: #1a1a1a;
   line-height: 1.65;
   text-align: left;          /* justify rompe el word-spacing en html2canvas */
   white-space: pre-wrap;
@@ -2996,7 +3038,16 @@ body.mode-comunicado .doc-comunicado-wrap { display: flex; flex-direction: colum
       </div>
       <div class="section-body">
         <div class="field-group">
-          <label>Texto completo del documento <span style="font-weight:400;color:rgba(255,255,255,0.4);text-transform:none">(usá [CIUDAD] para insertar la ciudad automáticamente)</span></label>
+          <div class="field-head">
+            <label>Texto del documento</label>
+            <span class="size-badge" id="badgeNotaBody">12pt</span>
+            <div class="size-selector" role="group" aria-label="Tamaño del cuerpo" data-size-target="notaBody">
+              <button type="button" class="size-btn" data-size="11" onclick="setTextSize('notaBody', 11)">Chico</button>
+              <button type="button" class="size-btn active" data-size="12" onclick="setTextSize('notaBody', 12)">Normal</button>
+              <button type="button" class="size-btn" data-size="14" onclick="setTextSize('notaBody', 14)">Grande</button>
+            </div>
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:6px;">Tip: usá [CIUDAD] para insertar la ciudad automáticamente</div>
           <div class="format-toolbar">
             <button type="button" class="format-btn" onclick="applyFormat('bold')" title="Negrita (Ctrl+B)" aria-label="Negrita"><b>B</b></button>
             <button type="button" class="format-btn" onclick="applyFormat('italic')" title="Cursiva (Ctrl+I)" aria-label="Cursiva"><i>I</i></button>
@@ -3068,11 +3119,23 @@ Asimismo, se adjunta como Anexo I el desarrollo de fundamentos técnicos, juríd
       </div>
       <div class="section-body">
         <div class="field-group">
-          <label>Titular (centrado, negrita, 16pt)</label>
+          <div class="field-head">
+            <label>Titular</label>
+            <span class="size-badge" id="badgeComTitulo">16pt</span>
+            <div class="size-selector" role="group" aria-label="Tamaño del titular" data-size-target="comTitulo">
+              <button type="button" class="size-btn" data-size="14" onclick="setTextSize('comTitulo', 14)">Pequeño</button>
+              <button type="button" class="size-btn active" data-size="16" onclick="setTextSize('comTitulo', 16)">Normal</button>
+              <button type="button" class="size-btn" data-size="18" onclick="setTextSize('comTitulo', 18)">Destacado</button>
+            </div>
+          </div>
           <input type="text" id="comunicadoTitulo" placeholder="Ej: El cinismo de la casta" oninput="updateComunicadoPreview()">
         </div>
         <div class="field-group">
-          <label>Subtítulo <span style="font-weight:400;color:rgba(255,255,255,0.4);text-transform:none">(opcional — debajo del título)</span></label>
+          <div class="field-head">
+            <label>Subtítulo</label>
+            <span class="size-badge">13pt</span>
+            <span style="font-weight:400;color:rgba(255,255,255,0.4);text-transform:none;font-size:10px;margin-left:auto;">opcional</span>
+          </div>
           <input type="text" id="comunicadoSubtitulo" placeholder="Ej: Bariloche, 28 de mayo de 2026" oninput="updateComunicadoPreview()">
         </div>
       </div>
@@ -3087,7 +3150,15 @@ Asimismo, se adjunta como Anexo I el desarrollo de fundamentos técnicos, juríd
       </div>
       <div class="section-body">
         <div class="field-group">
-          <label>Texto principal</label>
+          <div class="field-head">
+            <label>Texto principal</label>
+            <span class="size-badge" id="badgeComBody">13pt</span>
+            <div class="size-selector" role="group" aria-label="Tamaño del cuerpo" data-size-target="comBody">
+              <button type="button" class="size-btn" data-size="11" onclick="setTextSize('comBody', 11)">Chico</button>
+              <button type="button" class="size-btn active" data-size="13" onclick="setTextSize('comBody', 13)">Normal</button>
+              <button type="button" class="size-btn" data-size="15" onclick="setTextSize('comBody', 15)">Grande</button>
+            </div>
+          </div>
           <textarea id="comunicadoCuerpo" rows="10" oninput="updateComunicadoPreview(); autosizeComunicado(this)" style="font-size:11px;line-height:1.6;overflow:hidden;" placeholder="Desde La Libertad Avanza..."></textarea>
         </div>
       </div>
@@ -5078,6 +5149,56 @@ function switchMode(mode) {
   }, 180);
 }
 
+/* ════════════════════════════════════════════════════════════════
+   TEXT SIZE EDITOR — selectores de tamaño (Chico/Normal/Grande)
+   por sección. Persistido en draft state como _textSizes.
+   ════════════════════════════════════════════════════════════════ */
+const TEXT_SIZE_DEFAULTS = {
+  notaBody: 12,
+  comTitulo: 16,
+  comBody: 13
+};
+const TEXT_SIZE_CSS_VAR = {
+  notaBody:  '--nota-body-size',
+  comTitulo: '--com-title-size',
+  comBody:   '--com-body-size'
+};
+let currentTextSizes = { ...TEXT_SIZE_DEFAULTS };
+
+function applyTextSizes() {
+  Object.entries(currentTextSizes).forEach(([key, size]) => {
+    document.documentElement.style.setProperty(TEXT_SIZE_CSS_VAR[key], size + 'px');
+    const badge = document.getElementById('badge' + key.charAt(0).toUpperCase() + key.slice(1));
+    if (badge) badge.textContent = size + 'pt';
+    document.querySelectorAll(`[data-size-target="${key}"] .size-btn`).forEach(b => {
+      b.classList.toggle('active', parseFloat(b.dataset.size) === size);
+    });
+  });
+}
+
+function setTextSize(key, size) {
+  if (!(key in TEXT_SIZE_DEFAULTS)) return;
+  currentTextSizes[key] = size;
+  applyTextSizes();
+  // Re-render preview en vivo
+  if (key === 'notaBody') {
+    if (typeof updatePreview === 'function') updatePreview();
+  } else if (typeof updateComunicadoPreview === 'function') {
+    updateComunicadoPreview();
+  }
+  if (typeof scheduleSave === 'function') scheduleSave();
+}
+
+function getCurrentTextSizes() { return { ...currentTextSizes }; }
+function restoreTextSizes(sizes) {
+  if (sizes && typeof sizes === 'object') {
+    currentTextSizes = { ...TEXT_SIZE_DEFAULTS, ...sizes };
+  } else {
+    currentTextSizes = { ...TEXT_SIZE_DEFAULTS };
+  }
+  applyTextSizes();
+}
+
 function updateComunicadoPreview() {
   const city = document.getElementById('cityInput').value || 'RÍO NEGRO';
   const titulo = document.getElementById('comunicadoTitulo').value.trim();
@@ -5941,12 +6062,16 @@ async function exportComunicadoPDFNative() {
     const PT_TO_MM = 0.3528;              // 1pt en mm
     const lh = (sizePt, factor) => sizePt * factor * PT_TO_MM;
 
+    // Tamaños configurables por el usuario (editor de texto)
+    const titleSize = currentTextSizes.comTitulo || 16;
+    const bodySize = currentTextSizes.comBody || 13;
+
     // Título
     pdf.setFont('Montserrat', 'bold');
-    pdf.setFontSize(16);
+    pdf.setFontSize(titleSize);
     pdf.setTextColor(...INK);
     const tituloLines = pdf.splitTextToSize(titulo, CW);
-    const tituloLineH = lh(16, 1.35);
+    const tituloLineH = lh(titleSize, 1.35);
     tituloLines.forEach(line => {
       pdf.text(line, PAGE_W / 2, y, { align: 'center' });
       y += tituloLineH;
@@ -5970,9 +6095,9 @@ async function exportComunicadoPDFNative() {
 
     // Cuerpo
     pdf.setFont('Montserrat', 'normal');
-    pdf.setFontSize(13);
+    pdf.setFontSize(bodySize);
     pdf.setTextColor(...INK);
-    const bodyLineH = lh(13, 1.55);
+    const bodyLineH = lh(bodySize, 1.55);
     const paraGap = bodyLineH * 0.65;
 
     const paragraphs = cuerpo ? cuerpo.split(/\n\s*\n/).map(p => p.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean) : [];
@@ -6174,8 +6299,39 @@ async function exportInstagram() {
     await ensureFontsLoaded();
     await new Promise(r => setTimeout(r, 400));
 
-    // 3. Capturar con html2canvas
+    // 2b. Auto-fit: si el contenido excede 1440px de alto, achicar el cuerpo
+    // progresivamente (hasta -40%) para que entre sin cortarse.
     const el = document.getElementById('igRender');
+    const igBody = el.querySelector('.ig-body');
+    const igText = document.getElementById('igCuerpo');
+    const origBodyFontSize = igText ? getComputedStyle(igText).fontSize : null;
+    const origBodyLH = igText ? igText.style.lineHeight : '';
+    let shrinkApplied = 0;
+    if (igText && origBodyFontSize) {
+      const origPx = parseFloat(origBodyFontSize);
+      // Medir overflow
+      const innerH = igBody ? igBody.scrollHeight : 0;
+      const allowed = igBody ? igBody.clientHeight : 0;
+      if (innerH > allowed + 4) {
+        // Buscar el factor mínimo que hace que entre (entre 0.6 y 1.0)
+        for (let factor = 0.95; factor >= 0.6; factor -= 0.05) {
+          igText.style.fontSize = (origPx * factor) + 'px';
+          igText.style.lineHeight = '1.45';
+          // forzar reflow
+          void igBody.offsetHeight;
+          if (igBody.scrollHeight <= igBody.clientHeight + 4) {
+            shrinkApplied = Math.round((1 - factor) * 100);
+            break;
+          }
+        }
+        if (igBody.scrollHeight > igBody.clientHeight + 4) {
+          // Llegamos al 60% y todavía no entra — avisar
+          shrinkApplied = -1;
+        }
+      }
+    }
+
+    // 3. Capturar con html2canvas
     const canvas = await html2canvas(el, {
       width: 1080,
       height: 1440,
@@ -6184,6 +6340,12 @@ async function exportInstagram() {
       backgroundColor: '#ffffff',
       logging: false
     });
+
+    // Restaurar fuente original
+    if (igText && origBodyFontSize) {
+      igText.style.fontSize = '';
+      igText.style.lineHeight = origBodyLH;
+    }
 
     // 4. Descargar como PNG
     const dataUrl = canvas.toDataURL('image/png', 1.0);
@@ -6201,7 +6363,13 @@ async function exportInstagram() {
       logActivity('export_instagram', { city: document.getElementById('cityInput').value, titulo: titulo.slice(0, 80) });
     }
 
-    showToast('✓ Imagen Instagram lista (1080×1440)', 'success', 3000);
+    if (shrinkApplied > 0) {
+      showToast('✓ Imagen IG lista — texto reducido ' + shrinkApplied + '% para que entre en 1080×1440', 'success', 4500);
+    } else if (shrinkApplied < 0) {
+      showToast('⚠ El comunicado es muy largo para 1 imagen IG — recomendado: usar el PDF o acortar el cuerpo', 'error', 6000);
+    } else {
+      showToast('✓ Imagen Instagram lista (1080×1440)', 'success', 3000);
+    }
   } catch (e) {
     console.error('Export IG falló:', e);
     showToast('Error al generar la imagen: ' + e.message, 'error', 4000);
@@ -6300,6 +6468,10 @@ function currentFormState() {
     if (el) state[id] = el.value;
   });
   state._mode = (typeof currentMode !== 'undefined' && currentMode) ? currentMode : 'membrete';
+  // Tamaños del editor de texto
+  if (typeof getCurrentTextSizes === 'function') {
+    state._textSizes = getCurrentTextSizes();
+  }
   return state;
 }
 
@@ -6373,6 +6545,8 @@ function applyDraftState(state) {
   });
   const cityBtn = document.getElementById('cityBtnCurrent');
   if (cityBtn && state.cityInput) cityBtn.textContent = state.cityInput;
+  // Restaurar tamaños del editor de texto
+  if (typeof restoreTextSizes === 'function') restoreTextSizes(state._textSizes);
   // Restaurar modo (Nota / Comunicado)
   if (typeof switchMode === 'function') {
     switchMode(state._mode === 'comunicado' ? 'comunicado' : 'membrete');
