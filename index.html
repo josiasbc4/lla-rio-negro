@@ -5684,16 +5684,21 @@ async function exportComunicadoPDFNative() {
       pdf.setFontSize(13);
       pdf.setTextColor(255, 255, 255);
       pdf.text('COMUNICADO DE PRENSA', ML, 17);
-      // Logo blanco a la derecha (preservando aspect ratio)
-      if (blancoLogo) {
-        const targetH = 14; // mm
-        const w = targetH * (blancoLogo.w / blancoLogo.h);
-        try { pdf.addImage(blancoLogo.dataUrl, 'PNG', PAGE_W - MR - w, (BANNER_H - targetH) / 2 - 2, w, targetH); } catch {}
-      }
-      // Ciudad debajo del logo
+      // Logo blanco + ciudad: agrupados a la derecha y centrados entre sí
       pdf.setFont('Montserrat', 'bold');
       pdf.setFontSize(7);
-      pdf.text(city, PAGE_W - MR, BANNER_H - 5, { align: 'right' });
+      pdf.setTextColor(255, 255, 255);
+      if (blancoLogo) {
+        const targetH = 13; // mm
+        const w = targetH * (blancoLogo.w / blancoLogo.h);
+        const eagleX = PAGE_W - MR - w;
+        const eagleY = 4;
+        try { pdf.addImage(blancoLogo.dataUrl, 'PNG', eagleX, eagleY, w, targetH); } catch {}
+        // Ciudad centrada bajo el águila
+        pdf.text(city, eagleX + w / 2, eagleY + targetH + 4, { align: 'center' });
+      } else {
+        pdf.text(city, PAGE_W - MR, BANNER_H - 5, { align: 'right' });
+      }
     }
 
     function drawFooter() {
