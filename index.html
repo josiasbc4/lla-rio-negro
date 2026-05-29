@@ -2515,6 +2515,90 @@ body.mode-comunicado .doc-comunicado-wrap { display: flex; flex-direction: colum
   display: inline-block;
 }
 
+/* ═══════════ COMUNICADO: HOJAS A4 APILADAS (preview tipo Google Docs) ═══════════
+   Cada .com-page es una hoja A4 real (794×1123px @96dpi) con banner + cuerpo + pie,
+   igual que el PDF. La paginación se calcula en px equivalentes a los pt del PDF
+   (factor ptToPx ≈ 1.334) para que el corte coincida con el documento impreso. */
+.com-pages { display: none; }
+body.mode-comunicado .com-pages {
+  display: flex; flex-direction: column; align-items: center; gap: 28px; width: 100%;
+}
+/* En modo comunicado, #document-preview deja de ser "la hoja" y pasa a ser contenedor transparente */
+body.mode-comunicado #document-preview {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+body.mode-comunicado #docWatermark { display: none !important; }
+
+.com-page {
+  width: 794px; height: 1123px;
+  background: #fff;
+  box-shadow: 0 20px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+  border-radius: 2px;
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column;
+  flex: 0 0 auto;
+  color: #000;
+}
+.com-page-banner {
+  background: #371959;
+  height: 106px; flex: 0 0 106px;       /* 28mm */
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 50px;
+}
+.com-page-banner-label {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 22px; font-weight: 700;
+  color: #fff; text-transform: uppercase;
+  letter-spacing: 0.04em; line-height: 1.05;
+}
+.com-page-brand { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.com-page-brand img { height: 52px; width: auto; display: block; }
+.com-page-city {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 11px; font-weight: 700; color: #fff;
+  text-transform: uppercase; letter-spacing: 0.08em; text-align: center;
+  max-width: 200px;
+}
+.com-page-body {
+  flex: 1 1 auto;
+  padding: 45px 68px 0;                  /* 12mm top gap, 18mm sides */
+  overflow: hidden;
+}
+.com-page-title {
+  font-family: 'Montserrat', sans-serif; font-weight: 700;
+  font-size: var(--com-title-px, 21px); line-height: 1.35;
+  color: #1a1a1a; text-align: center; margin: 0 0 8px;
+}
+.com-page-subtitle {
+  font-family: 'Montserrat', sans-serif; font-weight: 500; font-style: italic;
+  font-size: var(--com-sub-px, 17px); line-height: 1.4;
+  color: #1a1a1a; text-align: center; margin: 0 0 14px;
+}
+.com-page-para {
+  font-family: 'Montserrat', sans-serif;
+  font-size: var(--com-body-px, 17px); line-height: 1.55;
+  color: #1a1a1a; text-align: left; white-space: pre-wrap;
+  margin: 0 0 var(--com-para-gap, 11px);
+  word-spacing: normal; letter-spacing: normal;
+}
+.com-page-links {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px; font-weight: 700; color: #1a1a1a; line-height: 1.6;
+  margin-top: 16px;
+}
+.com-page-links a { color: #371959; font-weight: 400; word-break: break-all; }
+.com-page-footer {
+  height: 106px; flex: 0 0 106px;        /* 28mm */
+  display: flex; align-items: center; justify-content: center;
+}
+.com-page-footer img { height: 52px; width: auto; }
+/* Medidor offscreen para paginar */
+#comMeasure { position: absolute; left: -99999px; top: 0; visibility: hidden; }
+
 /* DOC FOOTER */
 .doc-footer {
   padding: 16px 60px 24px;
@@ -3401,32 +3485,8 @@ Asimismo, se adjunta como Anexo I el desarrollo de fundamentos técnicos, juríd
 
       </div><!-- /doc-membrete-wrap -->
 
-      <!-- ══ COMUNICADO DE PRENSA ══ -->
-      <div class="doc-comunicado-wrap">
-
-        <!-- HEADER BANDA VIOLETA -->
-        <div class="doc-comunicado-header">
-          <div class="doc-comunicado-label">COMUNICADO OFICIAL</div>
-          <div class="doc-comunicado-brand">
-            <img id="docComLogo" src="LLA BLANCO.png" alt="La Libertad Avanza">
-            <div class="doc-comunicado-brand-city" id="docComCityLabel">BARILOCHE</div>
-          </div>
-        </div>
-
-        <!-- CUERPO -->
-        <div class="doc-comunicado-body">
-          <div class="doc-comunicado-headline" id="docComTitulo">El cinismo de la casta</div>
-          <div class="doc-comunicado-subtitle" id="docComSubtitulo"></div>
-          <div class="doc-comunicado-text" id="docComCuerpo"></div>
-          <div class="doc-comunicado-links" id="docComLinks" style="display:none"></div>
-        </div>
-
-        <!-- FOOTER -->
-        <div class="doc-comunicado-footer">
-          <img id="docComFooterLogo" src="LLA VIOLETA.png" alt="La Libertad Avanza">
-        </div>
-
-      </div><!-- /doc-comunicado-wrap -->
+      <!-- ══ COMUNICADO OFICIAL — hojas A4 apiladas (generadas por buildComunicadoPages) ══ -->
+      <div class="com-pages" id="comPages"></div>
 
       <!-- ══ RENDER INSTAGRAM (legacy offscreen — el export real es nativo a canvas 1080×1350) ══ -->
       <div class="ig-render" id="igRender" aria-hidden="true">
@@ -5447,40 +5507,119 @@ const IG_FOOTER_H = 175;
 const IG_BASE_BODY = 28;   // tamaño base del cuerpo (subido de 26 → 28, refs oficiales usan fuente más grande)
 // (predictIGSlides() y renderIGNative() viven más abajo, junto a computeIGSlides)
 
+// Factor pt→px en el preview: A4 = 210mm = 794px → 3.781 px/mm; 1pt = 0.3528mm.
+const COM_PX_PER_MM = 794 / 210;
+const ptToPxPreview = pt => pt * 0.3528 * COM_PX_PER_MM;   // ≈ pt * 1.334
+
 function updateComunicadoPreview() {
-  const city = document.getElementById('cityInput').value || 'RÍO NEGRO';
+  const city = (document.getElementById('cityInput').value || 'RÍO NEGRO');
   const titulo = document.getElementById('comunicadoTitulo').value.trim();
   const subtitulo = (document.getElementById('comunicadoSubtitulo')?.value || '').trim();
   const cuerpo = document.getElementById('comunicadoCuerpo').value.trim();
   const linkLabel = document.getElementById('comunicadoLinkLabel').value.trim();
   const linkUrl = document.getElementById('comunicadoLinkUrl').value.trim();
 
-  const cityEl = document.getElementById('docComCityLabel');
-  if (cityEl) cityEl.textContent = city.toUpperCase();
+  buildComunicadoPages({ city, titulo, subtitulo, cuerpo, linkLabel, linkUrl });
+  scaleDocument();
+}
 
-  const tituloEl = document.getElementById('docComTitulo');
-  if (tituloEl) tituloEl.textContent = titulo || 'Título del comunicado';
+// Construye el preview del comunicado como hojas A4 apiladas (banner+cuerpo+pie por hoja),
+// paginando por párrafo igual que el PDF. Actualiza el indicador "N páginas".
+function buildComunicadoPages(d) {
+  const container = document.getElementById('comPages');
+  if (!container) return;
 
-  const subtituloEl = document.getElementById('docComSubtitulo');
-  if (subtituloEl) subtituloEl.textContent = subtitulo;
+  // Tamaños en px equivalentes a los pt del PDF (para que el corte coincida con lo impreso)
+  const titlePx = ptToPxPreview(currentTextSizes.comTitulo || 16);
+  const bodyPx  = ptToPxPreview(currentTextSizes.comBody || 13);
+  const subPx   = ptToPxPreview(13);
+  const paraGapPx = bodyPx * 1.55 * 0.65;
+  const rs = document.documentElement.style;
+  rs.setProperty('--com-title-px', titlePx.toFixed(1) + 'px');
+  rs.setProperty('--com-sub-px', subPx.toFixed(1) + 'px');
+  rs.setProperty('--com-body-px', bodyPx.toFixed(1) + 'px');
+  rs.setProperty('--com-para-gap', paraGapPx.toFixed(1) + 'px');
 
-  const cuerpoEl = document.getElementById('docComCuerpo');
-  if (cuerpoEl) cuerpoEl.textContent = cuerpo;
+  // Geometría de página (px), espejo del PDF: banner 28mm, pie 28mm, body de 40mm a 269mm
+  const BODY_W = 794 - 2 * Math.round(18 * COM_PX_PER_MM);     // ancho útil ≈ 658
+  const USABLE = (269 - 40) * COM_PX_PER_MM - 14;               // alto útil del cuerpo ≈ 852 (con margen seguridad)
 
-  const linksEl = document.getElementById('docComLinks');
-  if (linksEl) {
-    if (linkLabel || linkUrl) {
-      linksEl.style.display = '';
-      linksEl.innerHTML = (linkLabel ? `<strong>${escapeHtml(linkLabel)}</strong><br>` : '') +
-        (linkUrl ? `<a href="${escapeHtml(linkUrl)}">${escapeHtml(linkUrl)}</a>` : '');
-    } else {
-      linksEl.style.display = 'none';
-    }
+  // Medidor offscreen (reutilizable) con el mismo ancho de cuerpo
+  let m = document.getElementById('comMeasure');
+  if (!m) { m = document.createElement('div'); m.id = 'comMeasure'; document.body.appendChild(m); }
+  m.style.width = BODY_W + 'px';
+  const measure = (cls, html) => { m.innerHTML = '<div class="' + cls + '">' + html + '</div>'; return m.firstChild.offsetHeight; };
+
+  const tituloTxt = (d.titulo && d.titulo.trim()) ? d.titulo : 'Título del comunicado';
+
+  const titleH = measure('com-page-title', escapeHtml(tituloTxt)) + 8;       // + margin-bottom
+  const subH = d.subtitulo ? (measure('com-page-subtitle', escapeHtml(d.subtitulo)) + 14) : 0;
+
+  const paras = d.cuerpo ? d.cuerpo.split(/\n\s*\n/).map(p => p.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean) : [];
+  const paraH = paras.map(p => measure('com-page-para', escapeHtml(p)));     // offsetHeight (sin margin)
+
+  const hasLinks = !!(d.linkLabel || d.linkUrl);
+  let linksH = 0;
+  if (hasLinks) {
+    let lh = '';
+    if (d.linkLabel) lh += '<strong>' + escapeHtml(d.linkLabel) + '</strong><br>';
+    if (d.linkUrl) lh += '<a>' + escapeHtml(d.linkUrl) + '</a>';
+    linksH = measure('com-page-links', lh) + 16;
   }
 
-  scaleDocument();
-  // Recalcular paginación cuando crece el contenido
-  setTimeout(detectPageCount, 50);
+  // Paginación por párrafo (corte limpio, sin partir párrafos)
+  const pages = [[]];
+  let pi = 0;
+  let used = titleH + subH;          // la página 0 arranca con título + subtítulo
+  paras.forEach((p, idx) => {
+    const need = paraH[idx] + (pages[pi].length > 0 || pi === 0 ? paraGapPx : 0);
+    if (used + need > USABLE && pages[pi].length > 0) {
+      pages.push([]); pi++; used = 0;
+    }
+    pages[pi].push(idx);
+    used += need;
+  });
+  // Links: en la última página si entran; si no, nueva página
+  let linksPage = pi;
+  if (hasLinks && used + linksH > USABLE && pages[pi].length > 0) {
+    pages.push([]); pi++; linksPage = pi; used = 0;
+  }
+
+  // Construir el DOM de las hojas
+  const cityUp = escapeHtml((d.city || '').toUpperCase());
+  const bannerHTML = '<div class="com-page-banner">'
+    + '<div class="com-page-banner-label">COMUNICADO<br>OFICIAL</div>'
+    + '<div class="com-page-brand"><img src="LLA BLANCO.png" alt=""><div class="com-page-city">' + cityUp + '</div></div>'
+    + '</div>';
+  const footerHTML = '<div class="com-page-footer"><img src="LLA VIOLETA.png" alt=""></div>';
+
+  let linksHTML = '';
+  if (hasLinks) {
+    linksHTML = '<div class="com-page-links">'
+      + (d.linkLabel ? '<strong>' + escapeHtml(d.linkLabel) + '</strong><br>' : '')
+      + (d.linkUrl ? '<a href="' + escapeHtml(d.linkUrl) + '" target="_blank" rel="noopener">' + escapeHtml(d.linkUrl) + '</a>' : '')
+      + '</div>';
+  }
+
+  let html = '';
+  for (let p = 0; p < pages.length; p++) {
+    html += '<div class="com-page">' + bannerHTML + '<div class="com-page-body">';
+    if (p === 0) {
+      html += '<div class="com-page-title">' + escapeHtml(tituloTxt) + '</div>';
+      if (d.subtitulo) html += '<div class="com-page-subtitle">' + escapeHtml(d.subtitulo) + '</div>';
+    }
+    pages[p].forEach(idx => { html += '<div class="com-page-para">' + escapeHtml(paras[idx]) + '</div>'; });
+    if (hasLinks && p === linksPage) html += linksHTML;
+    html += '</div>' + footerHTML + '</div>';
+  }
+  container.innerHTML = html;
+
+  // Indicador de páginas
+  const ind = document.getElementById('pageIndicator');
+  if (ind) {
+    if (pages.length > 1) { ind.textContent = '📄 ' + pages.length + ' páginas'; ind.classList.add('show'); }
+    else ind.classList.remove('show');
+  }
 }
 
 function escapeHtml(str) {
