@@ -443,8 +443,10 @@ button:focus-visible, .btn:focus-visible, .city-btn:focus-visible {
   border: 1px solid rgba(34,197,94,0.22);
   border-radius: 50%; width: 32px; height: 32px;
   color: rgba(134,239,172,0.9);
-  transition: all 0.3s;
+  transition: background 0.3s, border-color 0.3s, color 0.3s, transform 0.3s;
   cursor: default;
+  position: relative;
+  overflow: visible;
 }
 .badge-saved.flash {
   background: rgba(34,197,94,0.25);
@@ -452,7 +454,115 @@ button:focus-visible, .btn:focus-visible, .city-btn:focus-visible {
   border-color: rgba(34,197,94,0.5);
   transform: scale(1.08);
 }
-.badge-saved svg { width: 16px; height: 16px; }
+.badge-saved svg { width: 16px; height: 16px; transition: transform 0.3s var(--ease-spring, cubic-bezier(0.34,1.56,0.64,1)); }
+
+/* ─── Skeleton loaders (admin + drafts) ─── */
+@keyframes skelShimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skel-avatar, .skel-line, .skel-thumb {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.04) 0%,
+    rgba(255,255,255,0.12) 50%,
+    rgba(255,255,255,0.04) 100%);
+  background-size: 200% 100%;
+  animation: skelShimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}
+.skel-avatar { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; }
+.skel-line { height: 12px; }
+.skel-line-sm { height: 9px; }
+.skeleton-card {
+  display: flex; gap: 12px; align-items: flex-start;
+  pointer-events: none; opacity: 0.85;
+}
+
+/* ─── Thumbnails de borradores (wireframe puro CSS) ─── */
+.draft-card { position: relative; }
+.draft-thumb {
+  position: absolute; top: 12px; right: 12px;
+  width: 38px; height: 54px;
+  background: #f7f7f7;
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06);
+  padding: 4px 3px 3px;
+  overflow: hidden;
+  pointer-events: none;
+  display: flex; flex-direction: column; gap: 1.5px;
+  font-size: 0;
+}
+.draft-thumb-banner {
+  height: 8px;
+  background: linear-gradient(135deg, #371959, #7b3fa0);
+  margin: -4px -3px 3px;
+  border-radius: 3px 3px 0 0;
+}
+.draft-thumb--nota .draft-thumb-banner {
+  background: transparent;
+  height: 6px;
+  border-bottom: 1px solid rgba(123,63,160,0.5);
+  margin-bottom: 2px;
+}
+.draft-thumb-title {
+  height: 3px; background: #555; border-radius: 1px;
+  width: 70%; margin: 0 auto 2px;
+}
+.draft-thumb--nota .draft-thumb-title {
+  margin-left: 0; width: 80%;
+}
+.draft-thumb-sub {
+  height: 2px; background: #aaa; border-radius: 1px;
+  width: 50%; margin: 0 auto 3px;
+}
+.draft-thumb-line {
+  height: 1.5px; background: #c8c8c8; border-radius: 1px;
+}
+.draft-thumb-line:nth-child(odd) { width: 96%; }
+.draft-thumb-line:nth-child(even) { width: 72%; }
+.draft-thumb-foot {
+  margin-top: auto;
+  height: 5px; width: 12px;
+  background: linear-gradient(135deg, #7b3fa0, #371959);
+  border-radius: 50%;
+  align-self: center;
+}
+.draft-thumb--nota .draft-thumb-foot {
+  height: 2px; width: 60%;
+  background: rgba(123,63,160,0.4);
+  border-radius: 1px;
+}
+.draft-card .draft-name,
+.draft-card .draft-meta,
+.draft-card .draft-actions { padding-right: 50px; }
+/* Checkmark animado: el path del check se redibuja al guardar */
+.badge-saved svg polyline {
+  stroke-dasharray: 16;
+  stroke-dashoffset: 0;
+}
+.badge-saved.flash svg polyline {
+  animation: drawCheck 0.5s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+@keyframes drawCheck {
+  0%   { stroke-dashoffset: 16; }
+  100% { stroke-dashoffset: 0; }
+}
+/* Anillo pulsante al guardar */
+.badge-saved::after {
+  content: '';
+  position: absolute; inset: -2px;
+  border-radius: 50%;
+  border: 2px solid rgba(34,197,94,0.55);
+  opacity: 0; transform: scale(0.85);
+  pointer-events: none;
+}
+.badge-saved.flash::after {
+  animation: badgePulse 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes badgePulse {
+  0%   { opacity: 0.7; transform: scale(0.9); }
+  100% { opacity: 0;   transform: scale(1.7); }
+}
 
 /* ═══════════════ ADMIN PANEL ═══════════════ */
 .admin-btn {
@@ -3204,6 +3314,7 @@ let AUTHORIZED_USERS = [
 // Promesa que resuelve cuando users.json terminó de cargar (o falla y usa fallback)
 let _usersReadyResolve;
 const usersReady = new Promise(r => { _usersReadyResolve = r; });
+let _usersLoading = true;  // skeleton loaders en admin mientras se descarga users.json
 
 async function loadUsersFromRepo() {
   try {
@@ -3221,6 +3332,11 @@ async function loadUsersFromRepo() {
       };
     }
   } catch (e) { /* silencioso: usa fallback embebido */ }
+  _usersLoading = false;
+  // Si el drawer de admin está abierto, re-renderizar para reemplazar skeletons por datos reales
+  if (document.getElementById('adminDrawer')?.classList.contains('open')) {
+    if (typeof renderAdminUsers === 'function') renderAdminUsers();
+  }
   _usersReadyResolve();
 }
 loadUsersFromRepo();
@@ -3991,6 +4107,21 @@ function renderAdminUsers() {
   const list = document.getElementById('adminUsersList');
   const count = document.getElementById('adminUserCount');
   if (!list) return;
+  // Skeleton mientras se descarga users.json desde GitHub
+  if (_usersLoading) {
+    count.textContent = '…';
+    list.innerHTML = Array.from({ length: 4 }, () =>
+      '<div class="admin-user-card skeleton-card">' +
+        '<div class="skel-avatar"></div>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div class="skel-line" style="width:60%"></div>' +
+          '<div class="skel-line skel-line-sm" style="width:35%;margin-top:8px;"></div>' +
+          '<div class="skel-line skel-line-sm" style="width:80%;margin-top:6px;"></div>' +
+        '</div>' +
+      '</div>'
+    ).join('');
+    return;
+  }
   count.textContent = AUTHORIZED_USERS.length;
   const registry = getRegistry();
 
@@ -5174,6 +5305,101 @@ function zoomOut() {
 }
 function zoomFit() { zoomMode = 'fit'; applyZoom(); }
 
+// Detecta URLs en el cuerpo del comunicado y ofrece moverlas al campo Links.
+// Se muestra una sola vez por URL detectada (acumula en un Set para no spamear).
+function bindCuerpoUrlHint() {
+  const cuerpo = document.getElementById('comunicadoCuerpo');
+  if (!cuerpo || cuerpo._urlHintBound) return;
+  cuerpo._urlHintBound = true;
+  const URL_RE = /\bhttps?:\/\/[^\s)]+/i;
+  const dismissed = new Set();
+  let toastTimer = null;
+  let activeToast = null;
+  const check = () => {
+    const linkField = document.getElementById('comunicadoLinkUrl');
+    if (!linkField || linkField.value.trim()) return;
+    const match = cuerpo.value.match(URL_RE);
+    if (!match) return;
+    const url = match[0].replace(/[.,;:!?]+$/, '');
+    if (dismissed.has(url) || activeToast) return;
+    activeToast = showToastWithAction(
+      '🔗 Detecté un link en el cuerpo: <strong>' + escapeHtml(url.length > 38 ? url.slice(0, 38) + '…' : url) + '</strong>',
+      'Mover al campo Links',
+      () => {
+        linkField.value = url;
+        cuerpo.value = cuerpo.value.replace(url, '').replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+        if (typeof updateComunicadoPreview === 'function') updateComunicadoPreview();
+        if (typeof saveState === 'function') saveState();
+        showToast('✓ Link movido al campo Links', 'success', 2000);
+      },
+      () => { dismissed.add(url); }
+    );
+  };
+  const schedule = () => {
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(check, 800);
+  };
+  cuerpo.addEventListener('input', schedule);
+  cuerpo.addEventListener('paste', schedule);
+}
+
+// Pequeño helper para mostrar un toast con un botón de acción + dismiss.
+// Devuelve un objeto que se setea a null automáticamente al cerrarse.
+function showToastWithAction(htmlMessage, actionLabel, onAction, onDismiss) {
+  const container = document.getElementById('toastContainer');
+  if (!container) return null;
+  const t = document.createElement('div');
+  t.className = 'toast info';
+  t.innerHTML =
+    '<div class="toast-icon">🔗</div>' +
+    '<div class="toast-body">' + htmlMessage +
+      '<div style="margin-top:8px;display:flex;gap:6px;">' +
+        '<button class="toast-action-btn" data-act="ok">' + escapeHtml(actionLabel) + '</button>' +
+        '<button class="toast-action-btn" data-act="no">Ignorar</button>' +
+      '</div>' +
+    '</div>' +
+    '<button class="toast-close" aria-label="Cerrar">×</button>';
+  container.appendChild(t);
+  const ref = { el: t };
+  const close = () => {
+    t.classList.add('exit');
+    setTimeout(() => { t.remove(); ref.el = null; }, 300);
+  };
+  t.querySelector('[data-act="ok"]').addEventListener('click', () => { onAction && onAction(); close(); });
+  t.querySelector('[data-act="no"]').addEventListener('click', () => { onDismiss && onDismiss(); close(); });
+  t.querySelector('.toast-close').addEventListener('click', () => { onDismiss && onDismiss(); close(); });
+  // Auto-cierre a los 12s si el usuario no interactúa
+  setTimeout(() => { if (ref.el) { onDismiss && onDismiss(); close(); } }, 12000);
+  return ref;
+}
+
+// Zoom con Ctrl/Cmd + scroll en el preview-area (estilo Figma).
+// Debounced para evitar saltos bruscos cuando el trackpad emite muchos eventos.
+function bindCtrlScrollZoom() {
+  const area = document.querySelector('.preview-area');
+  if (!area || area._ctrlZoomBound) return;
+  area._ctrlZoomBound = true;
+  let pending = 0;
+  let rafId = null;
+  area.addEventListener('wheel', (e) => {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    pending += e.deltaY;
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => {
+      rafId = null;
+      const dy = pending;
+      pending = 0;
+      if (Math.abs(dy) < 1) return;
+      // Convertir delta acumulado a step de zoom (~10% por "tick")
+      const steps = Math.max(1, Math.min(4, Math.round(Math.abs(dy) / 60)));
+      for (let i = 0; i < steps; i++) {
+        if (dy < 0) zoomIn(); else zoomOut();
+      }
+    });
+  }, { passive: false });
+}
+
 /* ════════════════════════════════════════════════════════════════
    RESET / EMPEZAR DE CERO
    ════════════════════════════════════════════════════════════════ */
@@ -5684,16 +5910,21 @@ async function exportComunicadoPDFNative() {
       pdf.setFontSize(13);
       pdf.setTextColor(255, 255, 255);
       pdf.text('COMUNICADO DE PRENSA', ML, 17);
-      // Logo blanco a la derecha (preservando aspect ratio)
-      if (blancoLogo) {
-        const targetH = 14; // mm
-        const w = targetH * (blancoLogo.w / blancoLogo.h);
-        try { pdf.addImage(blancoLogo.dataUrl, 'PNG', PAGE_W - MR - w, (BANNER_H - targetH) / 2 - 2, w, targetH); } catch {}
-      }
-      // Ciudad debajo del logo
+      // Logo blanco + ciudad: agrupados a la derecha y centrados entre sí
       pdf.setFont('Montserrat', 'bold');
       pdf.setFontSize(7);
-      pdf.text(city, PAGE_W - MR, BANNER_H - 5, { align: 'right' });
+      pdf.setTextColor(255, 255, 255);
+      if (blancoLogo) {
+        const targetH = 13; // mm
+        const w = targetH * (blancoLogo.w / blancoLogo.h);
+        const eagleX = PAGE_W - MR - w;
+        const eagleY = 4;
+        try { pdf.addImage(blancoLogo.dataUrl, 'PNG', eagleX, eagleY, w, targetH); } catch {}
+        // Ciudad centrada bajo el águila
+        pdf.text(city, eagleX + w / 2, eagleY + targetH + 4, { align: 'center' });
+      } else {
+        pdf.text(city, PAGE_W - MR, BANNER_H - 5, { align: 'right' });
+      }
     }
 
     function drawFooter() {
@@ -5783,11 +6014,15 @@ async function exportComunicadoPDFNative() {
       }
     }
 
-    // Footer en la última página
-    drawFooter();
+    // Footer en TODAS las páginas (el águila violeta cierra cada hoja)
+    const pageCount = pdf.internal.getNumberOfPages();
+    for (let p = 1; p <= pageCount; p++) {
+      pdf.setPage(p);
+      drawFooter();
+    }
+    pdf.setPage(pageCount);
 
     // Metadatos
-    const pageCount = pdf.internal.getNumberOfPages();
     pdf.setProperties({
       title: 'Comunicado LLA - ' + cityRaw,
       subject: titulo,
@@ -6247,7 +6482,18 @@ function renderDraftsList() {
     const typeChip = isCom
       ? '<span class="draft-type-chip draft-type-com">Comunicado</span>'
       : '<span class="draft-type-chip draft-type-nota">Nota</span>';
+    const titulo = isCom ? (d.state.comunicadoTitulo || '') : (d.state && d.state.bodyText || '').slice(0, 40);
+    const subtitulo = isCom ? (d.state.comunicadoSubtitulo || '') : '';
+    const bodyLineCount = Math.min(8, Math.max(2, Math.ceil(bodyChars / 80)));
+    const thumb = '<div class="draft-thumb draft-thumb--' + (isCom ? 'com' : 'nota') + '" aria-hidden="true">' +
+      '<div class="draft-thumb-banner"></div>' +
+      (titulo ? '<div class="draft-thumb-title"></div>' : '') +
+      (subtitulo ? '<div class="draft-thumb-sub"></div>' : '') +
+      Array.from({ length: bodyLineCount }, () => '<div class="draft-thumb-line"></div>').join('') +
+      '<div class="draft-thumb-foot"></div>' +
+    '</div>';
     return `<div class="draft-card ${active?'active':''}" data-id="${id}">
+      ${thumb}
       <div class="draft-name" onclick="event.stopPropagation();">
         <span style="flex:1; display:flex; align-items:center; gap:8px;" onclick="openDraft('${id}')">${typeChip}<span style="flex:1;">${escapeHtml(d.name || 'Sin nombre')}</span></span>
         <button class="draft-action-btn" onclick="renameDraft('${id}')" title="Renombrar">✎</button>
@@ -6718,6 +6964,8 @@ exportJPG = function() {
   bindInlineEditing();
   bindAutosave();
   bindKeyboardShortcuts();
+  bindCtrlScrollZoom();
+  bindCuerpoUrlHint();
   setupShareButton();
   autosizeBody();
   updateBodyCounter();
