@@ -1,15 +1,11 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-30T06:59:57.641Z",
+  "updatedAt": "2026-05-30T07:00:08.696Z",
   "users": [
     {
       "name": "Josias Amaya",
       "hash": "6e87d83209d80f113740c333ff30eee50fd146bb46cc9cbac3b137ed738c80ed",
       "role": "admin"
-    },
-    {
-      "name": "Luis Carilao",
-      "hash": "5a5655498368e7f4de5df71c62da4a7827bc86415ad3449f25b4b3977be27105"
     },
     {
       "name": "LUCAS MENICHELLI",
