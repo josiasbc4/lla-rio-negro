@@ -1,15 +1,20 @@
 // Service Worker — Herramienta Partidaria LLA Río Negro
-// v3 — network-first para HTML/JSON, cache-first para assets
-const CACHE = 'lla-membrete-v3';
+// v7 — network-first para HTML/JSON/JS/CSS-propio, cache-first para libs/imágenes
+const CACHE = 'lla-membrete-v7';
 const ASSETS = [
   './',
   './index.html',
+  './styles.css',
+  './tailwind.css',
+  './app.js',
+  './admin-lit.js',
   './manifest.json',
   './LLA BLANCO.png',
   './LLA VIOLETA.png',
   'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  'https://cdn.jsdelivr.net/gh/lit/dist@3/all/lit-all.min.js'
 ];
 
 self.addEventListener('install', (event) => {
@@ -31,14 +36,16 @@ self.addEventListener('activate', (event) => {
 });
 
 // Estrategia mixta:
-// - HTML / users.json → NETWORK-FIRST (siempre buscar lo último, fallback a caché si offline)
-// - PNG, CSS, fuentes, libs CDN → CACHE-FIRST (rápido)
+// - HTML / JSON / CSS / JS propios → NETWORK-FIRST (siempre buscar lo último, fallback a caché si offline)
+// - PNG, fuentes, libs CDN → CACHE-FIRST (rápido)
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   const isHTML = event.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/' || url.pathname.endsWith('/');
   const isJSON = url.pathname.endsWith('.json');
-  const networkFirst = isHTML || isJSON;
+  // CSS/JS propios (mismo origen) network-first para reflejar deploys al instante; los CDN quedan cache-first
+  const isOwnAsset = url.origin === self.location.origin && (url.pathname.endsWith('.css') || url.pathname.endsWith('.js'));
+  const networkFirst = isHTML || isJSON || isOwnAsset;
 
   if (networkFirst) {
     event.respondWith(
