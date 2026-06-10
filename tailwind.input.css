@@ -1,0 +1,52 @@
+/* ════════════════════════════════════════════════════════════════
+   TAILWIND v4 — fuente de build
+   ────────────────────────────────────────────────────────────────
+   Build:  ./tailwindcss.exe -i tailwind.input.css -o tailwind.css --minify
+   (o:     powershell -ExecutionPolicy Bypass -File build-css.ps1)
+   El binario tailwindcss.exe está en .gitignore (125 MB, se descarga).
+
+   Decisiones:
+   - SIN Preflight: importamos theme + utilities pero NO el reset base,
+     para no pisar las ~2.890 líneas de styles.css ya curadas.
+   - source(none): desactiva el auto-escaneo de v4 (que tomaba clases de
+     styles.css, comentarios y scripts). Solo escaneamos las plantillas
+     reales declaradas con @source → build determinístico y limpio.
+   - Adopción incremental y ADITIVA: tailwind.css se linkea DESPUÉS de
+     styles.css. Las utilidades coexisten con el CSS semántico existente.
+   ════════════════════════════════════════════════════════════════ */
+
+@layer theme, base, components, utilities;
+
+/* Tailwind v4 sin Preflight, sin auto-escaneo */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+
+/* Plantillas a escanear. Solo el markup HTML: app.js/admin-lit.js son JS
+   con muchas palabras que coinciden con utilidades (filter, transition,
+   block…) y generaban clases espurias. Cuando adoptemos Tailwind dentro
+   de esos archivos, los agregamos acá puntualmente. */
+@source "./herramienta-lla.html";
+
+/* ── Tokens de marca → tema de Tailwind ──
+   Mismos valores que las variables de styles.css: un solo sistema.
+   Generan utilidades de color como bg-* / text-* / border-*. */
+@theme {
+  /* Escala violeta */
+  --color-v-300: #a66dd4;
+  --color-v-400: #7b3fa0;
+  --color-v-500: #5a2d82;
+  --color-v-600: #371959;
+  --color-v-700: #1e0d35;
+
+  /* Acentos funcionales */
+  --color-accent: #7b3fa0;
+  --color-ok: #86efac;
+  --color-warn: #fcd34d;
+  --color-danger: #f87171;
+
+  /* Radios coherentes con --r-* */
+  --radius-sm: 6px;
+  --radius-md: 9px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+}

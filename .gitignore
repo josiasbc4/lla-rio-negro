@@ -21,3 +21,10 @@ generar-codigo.html
 # Dev server
 node_modules/
 *.log
+
+# Scratch / archivos de prueba locales (Claude)
+_serve_test.ps1
+_test-admin.html
+
+# Tailwind CLI standalone (125 MB — se descarga, no se commitea)
+tailwindcss.exe
