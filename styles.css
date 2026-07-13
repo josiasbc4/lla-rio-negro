@@ -3074,3 +3074,138 @@ lla-admin-activity { display: block; }
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   MODO REUNIÓN — placas de invitación (ver reunion.js)
+   ════════════════════════════════════════════════════════════════ */
+.mode-only-reunion { display: none; }
+body.mode-reunion .mode-only-reunion { display: block; }
+/* En modo reunión: ocultar A4, toolbar de formato, label A4 y exports del topbar */
+body.mode-reunion .doc-scale-wrapper,
+body.mode-reunion .floating-editor-bar,
+body.mode-reunion .preview-label { display: none; }
+body:not(.mode-reunion) .reunion-scaler { display: none; }
+body.mode-reunion .topbar .btn-primary,
+body.mode-reunion .topbar .btn-only-membrete { display: none !important; }
+
+/* Selector de plantilla */
+.reunion-tpl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.reunion-tpl-card {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  cursor: pointer; user-select: none;
+}
+.reunion-tpl-card input { position: absolute; opacity: 0; pointer-events: none; }
+.reunion-tpl-thumb {
+  position: relative; width: 100%; aspect-ratio: 1080 / 1350;
+  border-radius: 10px; overflow: hidden;
+  background: radial-gradient(circle at 50% 0%, #3a2168, #221040 78%);
+  border: 2px solid transparent;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 10px 8px; gap: 4px;
+  transition: border-color 0.2s, transform 0.2s var(--ease-out);
+}
+.reunion-tpl-thumb b { font-size: 9px; font-weight: 800; line-height: 1.1; color: #fff; }
+.reunion-tpl-thumb em { font-size: 6px; font-weight: 800; background: #fff; color: #2a1550; padding: 1px 5px; border-radius: 99px; align-self: flex-start; font-style: normal; }
+.reunion-tpl-thumb i { display: block; height: 22px; border-radius: 4px; background: rgba(255,255,255,0.14); margin-top: 4px; }
+.reunion-tpl-thumb--t2 { justify-content: flex-start; }
+.reunion-tpl-thumb--t3 b { margin-top: 14px; }
+.reunion-tpl-card:hover .reunion-tpl-thumb { transform: translateY(-2px); border-color: rgba(166,109,212,0.5); }
+.reunion-tpl-card.is-selected .reunion-tpl-thumb { border-color: #fcd34d; box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 0 0 3px rgba(252,211,77,0.25); }
+.reunion-tpl-name { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: rgba(255,255,255,0.62); }
+.reunion-tpl-card.is-selected .reunion-tpl-name { color: #fcd34d; }
+
+.reunion-field-row { display: flex; gap: 10px; }
+.reunion-field-row .field-group { flex: 1; }
+.reunion-hint { font-size: 10px; color: rgba(255,255,255,0.55); line-height: 1.5; margin-top: 8px; }
+.reunion-photo-actions { display: flex; gap: 8px; }
+.reunion-export-btn { width: 100%; justify-content: center; padding: 14px; font-size: 12px; margin-top: 4px; }
+
+/* Preview escalado */
+.reunion-scaler { position: relative; width: 100%; max-width: 540px; margin: 0 auto; overflow: hidden; }
+
+/* ─── LA PLACA (1080×1350) ─── */
+.placa {
+  width: 1080px; height: 1350px;
+  transform-origin: top left;
+  background: radial-gradient(circle at 50% -5%, #3d236c 0%, #2a1550 45%, #1f0f3e 100%);
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+  position: relative; overflow: hidden;
+  box-sizing: border-box;
+}
+.placa * { box-sizing: border-box; }
+.placa-inner { width: 100%; height: 100%; display: flex; flex-direction: column; padding: 92px 76px 68px; }
+
+.placa-title { font-size: 82px; font-weight: 800; line-height: 1.02; letter-spacing: -0.01em; }
+.placa-title--sm { font-size: 70px; }
+.placa-title .ul { border-bottom: 4px solid rgba(255,255,255,0.55); padding-bottom: 6px; }
+.placa-title .hl { color: #fcd34d; }
+.placa-title-tail { font-weight: 500; }
+.placa-sub { font-size: 36px; font-weight: 500; line-height: 1.28; margin-top: 26px; color: rgba(255,255,255,0.92); }
+.placa-sub .hl { color: #fcd34d; border-bottom: 3px solid #fcd34d; }
+.placa-sub strong { font-weight: 800; }
+
+/* Pill blanco de datos */
+.placa-pill {
+  display: flex; align-items: center; gap: 26px;
+  background: #fff; color: #2a1550;
+  border-radius: 28px; padding: 26px 34px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.28);
+  width: 100%;
+}
+.placa-pill-date, .placa-pill-time { font-size: 52px; font-weight: 800; letter-spacing: -0.01em; white-space: nowrap; }
+.placa-pill-vsep { width: 2px; align-self: stretch; background: rgba(42,21,80,0.18); border-radius: 2px; }
+.placa-pill-place { font-size: 22px; font-weight: 500; line-height: 1.35; color: rgba(42,21,80,0.7); }
+.placa-pill-place strong { display: block; font-weight: 800; color: #2a1550; font-size: 24px; }
+
+/* Foto */
+.placa-photo { width: 100%; border-radius: 28px; overflow: hidden; box-shadow: 0 20px 48px rgba(0,0,0,0.32); }
+.placa-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.placa-photo--empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+  background: linear-gradient(165deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+  border: 2px dashed rgba(255,255,255,0.22);
+}
+.placa-photo-wm { width: 150px; opacity: 0.5; }
+.placa-photo-hint { font-size: 24px; font-weight: 600; color: rgba(255,255,255,0.6); }
+
+/* Marca (águila + ciudad) */
+.placa-brand { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.placa-brand-eagle { width: 150px; height: auto; }
+.placa-brand-city { font-size: 20px; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.85); }
+.placa-brand--boxed {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 24px; padding: 22px 30px;
+  align-self: flex-end;
+}
+.placa-brand--boxed .placa-brand-eagle { width: 120px; }
+
+/* Tag "Reunión" */
+.placa-tag {
+  align-self: center;
+  background: #fff; color: #2a1550;
+  font-size: 26px; font-weight: 800;
+  padding: 10px 34px; border-radius: 99px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.25);
+}
+
+/* ── T1: título, sub, foto con pill superpuesto, águila abajo ── */
+.placa--t1 { justify-content: flex-start; }
+.placa--t1 .placa-photo-block { position: relative; margin-top: 44px; }
+.placa--t1 .placa-photo { height: 470px; }
+.placa--t1 .placa-pill { position: absolute; left: 0; bottom: -34px; width: auto; max-width: 92%; }
+.placa--t1 .placa-brand { margin-top: auto; }
+
+/* ── T2: tag, título, pill, foto, águila ── */
+.placa--t2 { justify-content: flex-start; gap: 30px; }
+.placa--t2 .placa-tag { margin-bottom: 6px; }
+.placa--t2 .placa-photo { height: 440px; }
+.placa--t2 .placa-brand { margin-top: auto; }
+
+/* ── T3: águila arriba-derecha, título, pill, foto grande ── */
+.placa--t3 { justify-content: flex-start; gap: 34px; }
+.placa--t3 .placa-brand--boxed { margin-bottom: 6px; }
+.placa--t3 .placa-title { margin-top: -8px; }
+.placa--t3 .placa-photo { flex: 1; min-height: 0; }

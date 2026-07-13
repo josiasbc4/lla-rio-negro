@@ -1690,16 +1690,26 @@ function toggleSection(header) {
 // ═══════════════ MODO COMUNICADO DE PRENSA ═══════════════
 let currentMode = 'membrete';
 
+// Aplica clases del body + tab activo + refresco de preview para cualquier modo
+// (membrete | comunicado | reunion). Centralizado para no duplicar la lógica.
+function _applyModeUI(mode) {
+  document.body.classList.toggle('mode-membrete', mode === 'membrete');
+  document.body.classList.toggle('mode-comunicado', mode === 'comunicado');
+  document.body.classList.toggle('mode-reunion', mode === 'reunion');
+  const setTab = (id, on) => { const el = document.getElementById(id); if (el) el.classList.toggle('active', on); };
+  setTab('modeTabMembrete', mode === 'membrete');
+  setTab('modeTabComunicado', mode === 'comunicado');
+  setTab('modeTabReunion', mode === 'reunion');
+  if (mode === 'comunicado') updateComunicadoPreview();
+  else if (mode === 'reunion') { if (typeof renderReunionPreview === 'function') renderReunionPreview(); }
+  else updatePreview();
+  if (typeof updateFloatingEditorBar === 'function') updateFloatingEditorBar();
+}
+
 function switchMode(mode) {
   const previous = currentMode;
   if (previous === mode) {
-    // Idempotente — solo asegurar clases
-    document.body.classList.toggle('mode-membrete', mode === 'membrete');
-    document.body.classList.toggle('mode-comunicado', mode === 'comunicado');
-    document.getElementById('modeTabMembrete').classList.toggle('active', mode === 'membrete');
-    document.getElementById('modeTabComunicado').classList.toggle('active', mode === 'comunicado');
-    if (mode === 'comunicado') updateComunicadoPreview(); else updatePreview();
-    if (typeof updateFloatingEditorBar === 'function') updateFloatingEditorBar();
+    _applyModeUI(mode); // idempotente
     return;
   }
   currentMode = mode;
@@ -1719,12 +1729,7 @@ function switchMode(mode) {
 
   setTimeout(() => {
     // 2. Cambiar las clases del body + tabs en el "punto medio"
-    document.body.classList.toggle('mode-membrete', mode === 'membrete');
-    document.body.classList.toggle('mode-comunicado', mode === 'comunicado');
-    document.getElementById('modeTabMembrete').classList.toggle('active', mode === 'membrete');
-    document.getElementById('modeTabComunicado').classList.toggle('active', mode === 'comunicado');
-    if (mode === 'comunicado') updateComunicadoPreview(); else updatePreview();
-    if (typeof updateFloatingEditorBar === 'function') updateFloatingEditorBar();
+    _applyModeUI(mode);
 
     // 3. Animar ENTRADA del nuevo modo
     if (preview) {
@@ -2406,6 +2411,7 @@ function composeRecipientTitle() {
 
 function updatePreview() {
   if (currentMode === 'comunicado') { updateComunicadoPreview(); return; }
+  if (currentMode === 'reunion') { if (typeof renderReunionPreview === 'function') renderReunionPreview(); return; }
   const city = document.getElementById('cityInput').value.trim() || 'General Roca';
   const dateVal = document.getElementById('dateInput').value;
   const recipTitle = composeRecipientTitle();
@@ -3416,7 +3422,8 @@ const ACTIVE_DRAFT_KEY = 'lla_active_draft_v2';
 const PERSISTED_FIELDS = [
   'cityInput', 'dateInput', 'recipientTemplate', 'recipientName',
   'bodyText', 'signerName', 'signerDNI', 'signerRole',
-  'comunicadoTitulo', 'comunicadoSubtitulo', 'comunicadoCuerpo', 'comunicadoLinkLabel', 'comunicadoLinkUrl'
+  'comunicadoTitulo', 'comunicadoSubtitulo', 'comunicadoCuerpo', 'comunicadoLinkLabel', 'comunicadoLinkUrl',
+  'reunionFecha', 'reunionHora', 'reunionLugar', 'reunionDireccion'
 ];
 let saveTimeout = null;
 
@@ -3445,11 +3452,18 @@ function currentFormState() {
   if (typeof getCurrentTextSizes === 'function') {
     state._textSizes = getCurrentTextSizes();
   }
+  // Modo Reunión: plantilla elegida + foto (dataURL)
+  const rtpl = document.querySelector('input[name="reunionTemplate"]:checked');
+  if (rtpl) state._reunionTemplate = rtpl.value;
+  if (typeof getReunionImage === 'function') { const im = getReunionImage(); if (im) state._reunionImage = im; }
   return state;
 }
 
 function deriveDraftName(state) {
   const city = state.cityInput || 'Sin ciudad';
+  if (state._mode === 'reunion') {
+    return 'Reunión — ' + city;
+  }
   if (state._mode === 'comunicado') {
     const titulo = (state.comunicadoTitulo || '').trim();
     return 'Comunicado — ' + (titulo ? (titulo.length > 38 ? titulo.slice(0,38) + '…' : titulo) : city);
@@ -3520,9 +3534,16 @@ function applyDraftState(state) {
   if (cityBtn && state.cityInput) cityBtn.textContent = state.cityInput;
   // Restaurar tamaños del editor de texto
   if (typeof restoreTextSizes === 'function') restoreTextSizes(state._textSizes);
-  // Restaurar modo (Nota / Comunicado)
+  // Restaurar modo Reunión: plantilla + foto
+  if (state._reunionTemplate) {
+    const r = document.querySelector('input[name="reunionTemplate"][value="' + state._reunionTemplate + '"]');
+    if (r) r.checked = true;
+  }
+  if (typeof setReunionImage === 'function') setReunionImage(state._reunionImage || null);
+  // Restaurar modo (Nota / Comunicado / Reunión)
   if (typeof switchMode === 'function') {
-    switchMode(state._mode === 'comunicado' ? 'comunicado' : 'membrete');
+    const m = (state._mode === 'comunicado' || state._mode === 'reunion') ? state._mode : 'membrete';
+    switchMode(m);
   }
 }
 
