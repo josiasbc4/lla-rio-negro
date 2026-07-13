@@ -3170,17 +3170,23 @@ body.mode-reunion .topbar .btn-only-membrete { display: none !important; }
 .placa-photo-wm { width: 150px; opacity: 0.5; }
 .placa-photo-hint { font-size: 24px; font-weight: 600; color: rgba(255,255,255,0.6); }
 
-/* Marca (águila + ciudad) */
-.placa-brand { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.placa-brand-eagle { width: 150px; height: auto; }
-.placa-brand-city { font-size: 20px; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.85); }
+/* Marca: logo completo (LA LIBERTAD AVANZA) + ciudad donde iba "Río Negro" */
+.placa-brand { display: inline-flex; flex-direction: column; align-items: flex-end; align-self: center; }
+.placa-brand-logo { width: 470px; height: auto; display: block; }
+.placa-brand-city {
+  font-size: 26px; font-weight: 800; letter-spacing: 0.14em;
+  text-transform: uppercase; color: #fff;
+  margin-top: 2px; margin-right: 6px; line-height: 1;
+  max-width: 470px; text-align: right; word-break: break-word;
+}
 .placa-brand--boxed {
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 24px; padding: 22px 30px;
-  align-self: flex-end;
+  border-radius: 24px; padding: 26px 32px;
+  align-self: flex-end; align-items: center;
 }
-.placa-brand--boxed .placa-brand-eagle { width: 120px; }
+.placa-brand--boxed .placa-brand-logo { width: 340px; }
+.placa-brand--boxed .placa-brand-city { margin-right: 0; text-align: center; font-size: 22px; }
 
 /* Tag "Reunión" */
 .placa-tag {

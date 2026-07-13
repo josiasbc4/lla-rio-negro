@@ -15,7 +15,8 @@
 
 const REUNION_W = 1080;
 const REUNION_H = 1350;
-const REUNION_EAGLE = 'LLA BLANCO.png';
+const REUNION_LOGO = 'LLA LOGO.png';   // logo completo (águila + LA LIBERTAD AVANZA, sin "Río Negro")
+const REUNION_EAGLE = 'LLA EAGLE.png'; // águila sola (marca de agua de la foto vacía)
 let reunionImage = null; // dataURL de la foto subida (o null → placeholder)
 
 // ─── Helpers ───
@@ -52,10 +53,10 @@ function reunionPhoto() {
     <span class="placa-photo-hint">Sumá una foto (opcional)</span>
   </div>`;
 }
-// Águila de marca + ciudad
+// Logo completo (LA LIBERTAD AVANZA) con la ciudad donde iba "Río Negro"
 function reunionBrand(d, boxed) {
   const cls = boxed ? 'placa-brand placa-brand--boxed' : 'placa-brand';
-  return `<div class="${cls}"><img class="placa-brand-eagle" src="${REUNION_EAGLE}" alt="La Libertad Avanza"><span class="placa-brand-city">${reunionEsc(d.ciudad)}</span></div>`;
+  return `<div class="${cls}"><img class="placa-brand-logo" src="${REUNION_LOGO}" alt="La Libertad Avanza"><span class="placa-brand-city">${reunionEsc(d.ciudad)}</span></div>`;
 }
 
 // ─── Las 3 plantillas ───
