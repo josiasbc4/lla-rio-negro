@@ -3170,23 +3170,41 @@ body.mode-reunion .topbar .btn-only-membrete { display: none !important; }
 .placa-photo-wm { width: 150px; opacity: 0.5; }
 .placa-photo-hint { font-size: 24px; font-weight: 600; color: rgba(255,255,255,0.6); }
 
-/* Marca: logo completo (LA LIBERTAD AVANZA) + ciudad donde iba "Río Negro" */
-.placa-brand { display: inline-flex; flex-direction: column; align-items: flex-end; align-self: center; }
-.placa-brand-logo { width: 470px; height: auto; display: block; }
+/* Marca: logo completo (LA LIBERTAD AVANZA) + ciudad donde iba "Río Negro".
+   La ciudad va CENTRADA respecto de la palabra "AVANZA" del logo:
+   medida por alpha en LLA LOGO.png (1478×652), AVANZA ocupa X 1022..1466
+   → centro = 84.17% del ancho; alto del logo = 652/1478 = 44.12% del ancho. */
+.placa-brand {
+  --lw: 258px; /* 470px − 45% */
+  position: relative;
+  width: var(--lw);
+  align-self: center;
+  padding-bottom: 38px; /* reserva para la ciudad */
+}
+.placa-brand-logo { width: 100%; height: auto; display: block; }
 .placa-brand-city {
-  font-size: 26px; font-weight: 800; letter-spacing: 0.14em;
-  text-transform: uppercase; color: #fff;
-  margin-top: 2px; margin-right: 6px; line-height: 1;
-  max-width: 470px; text-align: right; word-break: break-word;
+  position: absolute;
+  left: calc(var(--lw) * 0.8417);
+  top: calc(var(--lw) * 0.4412 + 4px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 15px; font-weight: 800; letter-spacing: 0.14em;
+  text-transform: uppercase; color: #fff; line-height: 1;
 }
 .placa-brand--boxed {
+  --lw: 187px; /* 340px − 45% */
+  width: calc(var(--lw) + 64px);
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 24px; padding: 26px 32px;
-  align-self: flex-end; align-items: center;
+  border-radius: 24px;
+  padding: 26px 32px 52px;
+  align-self: flex-end;
 }
-.placa-brand--boxed .placa-brand-logo { width: 340px; }
-.placa-brand--boxed .placa-brand-city { margin-right: 0; text-align: center; font-size: 22px; }
+.placa-brand--boxed .placa-brand-city {
+  left: calc(32px + var(--lw) * 0.8417);
+  top: calc(26px + var(--lw) * 0.4412 + 4px);
+  font-size: 13px;
+}
 
 /* Tag "Reunión" */
 .placa-tag {
