@@ -119,6 +119,16 @@ class LlaAdminActivity extends LitElement {
         </div>
       </div>
 
+      <a class="admin-sheet-link" href=${(typeof window.getSheetViewUrl === 'function') ? window.getSheetViewUrl() : '#'} target="_blank" rel="noopener"
+         title="Abre el Google Sheet con el registro completo de actividad de todos los referentes">
+        <span class="admin-sheet-link-icon">${_icon('<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/>')}</span>
+        <span class="admin-sheet-link-text">
+          <strong>Ver log completo en Google Sheets</strong>
+          <small>Registro en vivo de toda la actividad (logins y exportaciones de todos los referentes)</small>
+        </span>
+        ${_icon('<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>')}
+      </a>
+
       <div class="admin-activity-layout">
         <div class="admin-section">
           <div class="admin-section-title"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>Top ciudades</div>

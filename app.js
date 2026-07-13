@@ -37,9 +37,10 @@ async function loadUsersFromRepo() {
       }
       // Guardar adminData encriptado para desencriptar al loguearse
       window._remoteAdminData = data.adminData || {};
-      // Config compartida (URL Apps Script, etc)
+      // Config compartida (URL Apps Script, link de vista del Sheet, etc)
       window._sharedConfig = {
-        sheetUrl: data.sheetUrl || data.script_url || ''
+        sheetUrl: data.sheetUrl || data.script_url || '',
+        sheetViewUrl: data.sheetViewUrl || ''
       };
     }
   } catch (e) { /* silencioso: usa fallback embebido */ }
@@ -339,6 +340,14 @@ function getSheetWebhookUrl() {
   // Prioridad: config compartida (users.json) → localStorage local
   if (window._sharedConfig && window._sharedConfig.sheetUrl) return window._sharedConfig.sheetUrl;
   return localStorage.getItem('lla_sheet_url_v1') || '';
+}
+
+// URL "humana" del Sheet (abrir el log en el navegador, solo admins)
+// Prioridad: config compartida (users.json) → fallback hardcodeado
+const SHEET_VIEW_URL_FALLBACK = 'https://docs.google.com/spreadsheets/d/11SCMapEmlRWtyMSgOxXTViZj4O8kT-zJ2rYJ87IM2Hk/edit#gid=0';
+function getSheetViewUrl() {
+  if (window._sharedConfig && window._sharedConfig.sheetViewUrl) return window._sharedConfig.sheetViewUrl;
+  return SHEET_VIEW_URL_FALLBACK;
 }
 
 async function syncActivityToSheet(entry) {

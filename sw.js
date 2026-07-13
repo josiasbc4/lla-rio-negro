@@ -1,6 +1,6 @@
 // Service Worker — Herramienta Partidaria LLA Río Negro
 // v7 — network-first para HTML/JSON/JS/CSS-propio, cache-first para libs/imágenes
-const CACHE = 'lla-membrete-v7';
+const CACHE = 'lla-membrete-v8';
 const ASSETS = [
   './',
   './index.html',
