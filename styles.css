@@ -3115,6 +3115,19 @@ body.mode-reunion .topbar .btn-only-membrete { display: none !important; }
 .reunion-tpl-name { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: rgba(255,255,255,0.62); }
 .reunion-tpl-card.is-selected .reunion-tpl-name { color: #fcd34d; }
 
+/* Encuadre de la foto: arrastrar en el preview + slider de zoom */
+#reunionPlaca .placa-photo { touch-action: none; }
+#reunionPlaca .placa-photo.is-pannable { cursor: grab; }
+#reunionPlaca .placa-photo.is-pannable:active { cursor: grabbing; }
+.mode-only-reunion input[type="range"] {
+  width: 100%; padding: 0; margin: 4px 0 0;
+  accent-color: #a66dd4;
+  background: transparent; border: none; box-shadow: none;
+}
+#reunionImgControls { margin-top: 12px; }
+.reunion-zoom-row { display: flex; align-items: center; justify-content: space-between; }
+.reunion-zoom-val { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.7); font-variant-numeric: tabular-nums; }
+
 .reunion-field-row { display: flex; gap: 10px; }
 .reunion-field-row .field-group { flex: 1; }
 .reunion-hint { font-size: 10px; color: rgba(255,255,255,0.55); line-height: 1.5; margin-top: 8px; }
@@ -3137,13 +3150,14 @@ body.mode-reunion .topbar .btn-only-membrete { display: none !important; }
 .placa * { box-sizing: border-box; }
 .placa-inner { width: 100%; height: 100%; display: flex; flex-direction: column; padding: 92px 76px 68px; }
 
+/* Tipografía de la placa: 100% fiel al deck — todo blanco, subrayados blancos */
 .placa-title { font-size: 82px; font-weight: 800; line-height: 1.02; letter-spacing: -0.01em; }
 .placa-title--sm { font-size: 70px; }
 .placa-title .ul { border-bottom: 4px solid rgba(255,255,255,0.55); padding-bottom: 6px; }
-.placa-title .hl { color: #fcd34d; }
+.placa-title .hl { color: inherit; }
 .placa-title-tail { font-weight: 500; }
 .placa-sub { font-size: 36px; font-weight: 500; line-height: 1.28; margin-top: 26px; color: rgba(255,255,255,0.92); }
-.placa-sub .hl { color: #fcd34d; border-bottom: 3px solid #fcd34d; }
+.placa-sub .hl { color: inherit; border-bottom: 3px solid #fff; }
 .placa-sub strong { font-weight: 800; }
 
 /* Pill blanco de datos */
@@ -3188,7 +3202,7 @@ body.mode-reunion .topbar .btn-only-membrete { display: none !important; }
   top: calc(var(--lw) * 0.4412 + 4px);
   transform: translateX(-50%);
   white-space: nowrap;
-  font-size: 15px; font-weight: 800; letter-spacing: 0.14em;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.14em;
   text-transform: uppercase; color: #fff; line-height: 1;
 }
 .placa-brand--boxed {
@@ -3203,7 +3217,7 @@ body.mode-reunion .topbar .btn-only-membrete { display: none !important; }
 .placa-brand--boxed .placa-brand-city {
   left: calc(32px + var(--lw) * 0.8417);
   top: calc(26px + var(--lw) * 0.4412 + 4px);
-  font-size: 13px;
+  font-size: 8px;
 }
 
 /* Tag "Reunión" */
@@ -3219,7 +3233,8 @@ body.mode-reunion .topbar .btn-only-membrete { display: none !important; }
 .placa--t1 { justify-content: flex-start; }
 .placa--t1 .placa-photo-block { position: relative; margin-top: 44px; }
 .placa--t1 .placa-photo { height: 470px; }
-.placa--t1 .placa-pill { position: absolute; left: 0; bottom: -34px; width: auto; max-width: 92%; }
+/* El pill ocupa el mismo ancho que la foto */
+.placa--t1 .placa-pill { position: absolute; left: 0; right: 0; bottom: -34px; width: 100%; }
 .placa--t1 .placa-brand { margin-top: auto; }
 
 /* ── T2: tag, título, pill, foto, águila ── */

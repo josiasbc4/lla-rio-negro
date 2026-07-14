@@ -3456,6 +3456,7 @@ function currentFormState() {
   const rtpl = document.querySelector('input[name="reunionTemplate"]:checked');
   if (rtpl) state._reunionTemplate = rtpl.value;
   if (typeof getReunionImage === 'function') { const im = getReunionImage(); if (im) state._reunionImage = im; }
+  if (typeof getReunionFraming === 'function') state._reunionFraming = getReunionFraming();
   return state;
 }
 
@@ -3540,6 +3541,7 @@ function applyDraftState(state) {
     if (r) r.checked = true;
   }
   if (typeof setReunionImage === 'function') setReunionImage(state._reunionImage || null);
+  if (typeof setReunionFraming === 'function') setReunionFraming(state._reunionFraming || null);
   // Restaurar modo (Nota / Comunicado / Reunión)
   if (typeof switchMode === 'function') {
     const m = (state._mode === 'comunicado' || state._mode === 'reunion') ? state._mode : 'membrete';

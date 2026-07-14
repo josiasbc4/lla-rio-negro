@@ -17,7 +17,9 @@ const REUNION_W = 1080;
 const REUNION_H = 1350;
 const REUNION_LOGO = 'LLA LOGO.png';   // logo completo (águila + LA LIBERTAD AVANZA, sin "Río Negro")
 const REUNION_EAGLE = 'LLA EAGLE.png'; // águila sola (marca de agua de la foto vacía)
-let reunionImage = null; // dataURL de la foto subida (o null → placeholder)
+let reunionImage = null;               // dataURL de la foto subida (o null → placeholder)
+let reunionImgZoom = 1;                // 1..3 (zoom del encuadre)
+let reunionImgPos = { x: 0, y: 0 };    // -1..1 en cada eje (pan dentro del margen)
 
 // ─── Helpers ───
 function reunionEsc(s) {
@@ -45,9 +47,20 @@ function reunionPill(d) {
     <span class="placa-pill-place"><strong>${reunionEsc(d.lugar)}</strong>${reunionEsc(d.direccion)}<br>${reunionEsc(d.ciudad)}.</span>
   </div>`;
 }
-// Foto (subida) o placeholder violeta con águila de agua
+// Foto (subida) o placeholder violeta con águila de agua.
+// El encuadre (zoom + pan) va como transform inline así el export renderiza idéntico.
+// translate se aplica antes que scale (orden derecha→izquierda), así que el
+// desplazamiento visual máximo sin dejar huecos es (z−1)/2 del frame:
+// tx_max% = (z−1)/(2z)·100 del tamaño del propio img.
 function reunionPhoto() {
-  if (reunionImage) return `<div class="placa-photo"><img src="${reunionImage}" alt=""></div>`;
+  if (reunionImage) {
+    const z = reunionImgZoom;
+    const m = (z - 1) / (2 * z) * 100;
+    const tx = (reunionImgPos.x * m).toFixed(2);
+    const ty = (reunionImgPos.y * m).toFixed(2);
+    const pannable = z > 1.001 ? ' is-pannable' : '';
+    return `<div class="placa-photo${pannable}"><img src="${reunionImage}" alt="" style="transform: scale(${z}) translate(${tx}%, ${ty}%)"></div>`;
+  }
   return `<div class="placa-photo placa-photo--empty">
     <img class="placa-photo-wm" src="${REUNION_EAGLE}" alt="">
     <span class="placa-photo-hint">Sumá una foto (opcional)</span>
@@ -67,7 +80,7 @@ const REUNION_TEMPLATES = {
     render: d => `
       <div class="placa-inner placa--t1">
         <h1 class="placa-title">La batalla cultural<br><span class="ul">te necesita.</span></h1>
-        <p class="placa-sub"><span class="hl">Sumate</span> y construyamos<br>La Libertad Avanza en <strong>${reunionEsc(d.ciudad)}</strong>.</p>
+        <p class="placa-sub"><span class="hl">Sumate</span> y construyamos<br>La Libertad Avanza en ${reunionEsc(d.ciudad)}.</p>
         <div class="placa-photo-block">
           ${reunionPhoto()}
           ${reunionPill(d)}
@@ -113,6 +126,78 @@ function renderReunionPreview() {
   document.querySelectorAll('.reunion-tpl-card').forEach(c => {
     c.classList.toggle('is-selected', c.querySelector('input')?.value === d.template);
   });
+  syncReunionImgControls();
+}
+
+// Muestra/oculta los controles de encuadre y sincroniza el slider con el estado
+function syncReunionImgControls() {
+  const ctr = document.getElementById('reunionImgControls');
+  if (!ctr) return;
+  ctr.style.display = reunionImage ? 'block' : 'none';
+  const noFoto = document.querySelector('.reunion-nofoto-hint');
+  if (noFoto) noFoto.style.display = reunionImage ? 'none' : 'block';
+  const slider = document.getElementById('reunionZoom');
+  const val = document.getElementById('reunionZoomVal');
+  if (slider) slider.value = Math.round(reunionImgZoom * 100);
+  if (val) val.textContent = Math.round(reunionImgZoom * 100) + '%';
+}
+
+// Slider de zoom (100..300 → 1..3). Reajusta el pan para no dejar huecos.
+function reunionSetZoom(v) {
+  reunionImgZoom = Math.max(1, Math.min(3, Number(v) / 100));
+  // Al reducir zoom, el rango de pan se achica; clamp a [-1,1] siempre es válido
+  reunionImgPos.x = Math.max(-1, Math.min(1, reunionImgPos.x));
+  reunionImgPos.y = Math.max(-1, Math.min(1, reunionImgPos.y));
+  renderReunionPreview();
+  if (typeof scheduleSave === 'function') scheduleSave();
+}
+
+// Arrastre para reencuadrar la foto en el preview (delegado, sobrevive a re-render)
+function bindReunionPan() {
+  const scaler = document.getElementById('reunionScaler');
+  if (!scaler || scaler._panBound) return;
+  scaler._panBound = true;
+  let dragging = false, lastX = 0, lastY = 0;
+  const down = e => {
+    if (!reunionImage || reunionImgZoom <= 1.001) return;
+    const photo = e.target.closest('.placa-photo');
+    if (!photo || !scaler.contains(photo)) return;
+    dragging = true;
+    const p = e.touches ? e.touches[0] : e;
+    lastX = p.clientX; lastY = p.clientY;
+    e.preventDefault();
+  };
+  const move = e => {
+    if (!dragging) return;
+    const p = e.touches ? e.touches[0] : e;
+    const placa = document.getElementById('reunionPlaca');
+    const scale = (placa && placa.getBoundingClientRect().width / REUNION_W) || 0.33;
+    const photo = scaler.querySelector('.placa-photo');
+    if (!photo) return;
+    // px de pantalla → fracción del rango de pan del propio frame
+    const frameW = photo.getBoundingClientRect().width;   // ya escalado
+    const frameH = photo.getBoundingClientRect().height;
+    const z = reunionImgZoom;
+    const rangeX = frameW * (z - 1) / 2;  // px de pantalla de recorrido a cada lado
+    const rangeY = frameH * (z - 1) / 2;
+    if (rangeX > 0) reunionImgPos.x = Math.max(-1, Math.min(1, reunionImgPos.x + (p.clientX - lastX) / rangeX));
+    if (rangeY > 0) reunionImgPos.y = Math.max(-1, Math.min(1, reunionImgPos.y + (p.clientY - lastY) / rangeY));
+    lastX = p.clientX; lastY = p.clientY;
+    // Reaplicar transform sin re-render completo (más fluido)
+    const img = photo.querySelector('img');
+    if (img) {
+      const m = (z - 1) / (2 * z) * 100;
+      img.style.transform = 'scale(' + z + ') translate(' + (reunionImgPos.x * m).toFixed(2) + '%, ' + (reunionImgPos.y * m).toFixed(2) + '%)';
+    }
+    e.preventDefault();
+  };
+  const up = () => { if (dragging) { dragging = false; if (typeof scheduleSave === 'function') scheduleSave(); } };
+  scaler.addEventListener('mousedown', down);
+  scaler.addEventListener('touchstart', down, { passive: false });
+  window.addEventListener('mousemove', move);
+  window.addEventListener('touchmove', move, { passive: false });
+  window.addEventListener('mouseup', up);
+  window.addEventListener('touchend', up);
 }
 
 // Escala la placa 1080×1350 para que entre en el ancho disponible del preview
@@ -146,6 +231,8 @@ function reunionHandleImage(input) {
       cv.width = width; cv.height = height;
       cv.getContext('2d').drawImage(img, 0, 0, width, height);
       reunionImage = cv.toDataURL('image/jpeg', 0.85);
+      reunionImgZoom = 1;
+      reunionImgPos = { x: 0, y: 0 };
       renderReunionPreview();
       if (typeof scheduleSave === 'function') scheduleSave();
     };
@@ -155,6 +242,8 @@ function reunionHandleImage(input) {
 }
 function reunionRemoveImage() {
   reunionImage = null;
+  reunionImgZoom = 1;
+  reunionImgPos = { x: 0, y: 0 };
   const inp = document.getElementById('reunionImageInput');
   if (inp) inp.value = '';
   renderReunionPreview();
@@ -199,9 +288,16 @@ async function exportReunion() {
   }
 }
 
-// ─── Estado (draft): la foto se guarda aparte de los inputs ───
+// ─── Estado (draft): la foto y su encuadre se guardan aparte de los inputs ───
 function getReunionImage() { return reunionImage; }
-function setReunionImage(dataUrl) { reunionImage = dataUrl || null; }
+function setReunionImage(dataUrl) { reunionImage = dataUrl || null; if (!reunionImage) { reunionImgZoom = 1; reunionImgPos = { x: 0, y: 0 }; } }
+function getReunionFraming() { return { zoom: reunionImgZoom, x: reunionImgPos.x, y: reunionImgPos.y }; }
+function setReunionFraming(f) {
+  if (f && typeof f === 'object') {
+    reunionImgZoom = Math.max(1, Math.min(3, f.zoom || 1));
+    reunionImgPos = { x: Math.max(-1, Math.min(1, f.x || 0)), y: Math.max(-1, Math.min(1, f.y || 0)) };
+  } else { reunionImgZoom = 1; reunionImgPos = { x: 0, y: 0 }; }
+}
 
 // ─── Init ───
 function initReunion() {
@@ -211,6 +307,7 @@ function initReunion() {
     r.addEventListener('change', () => { renderReunionPreview(); if (typeof scheduleSave === 'function') scheduleSave(); });
   });
   window.addEventListener('resize', () => { if (document.body.classList.contains('mode-reunion')) scaleReunionPreview(); });
+  bindReunionPan();
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initReunion);
 else initReunion();
