@@ -25,12 +25,26 @@ let reunionImgPos = { x: 0, y: 0 };    // -1..1 en cada eje (pan dentro del marg
 function reunionEsc(s) {
   return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
+// Formatea el value del <input type=date> (YYYY-MM-DD) a "DD/MM".
+// Si el value ya es texto libre (drafts viejos), lo devuelve tal cual.
+function reunionFmtFecha(raw) {
+  if (!raw) return '22/06';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  return m ? (m[3] + '/' + m[2]) : raw;
+}
+// Formatea el value del <input type=time> (HH:MM) a "HH:MM h" (formato del deck).
+function reunionFmtHora(raw) {
+  if (!raw) return '17:00 h';
+  const m = /^(\d{2}):(\d{2})$/.exec(raw);
+  return m ? (m[1] + ':' + m[2] + ' h') : raw;
+}
+
 function reunionFields() {
   const v = id => (document.getElementById(id)?.value || '').trim();
   return {
     ciudad: v('cityInput') || 'Ciudad',
-    fecha: v('reunionFecha') || '22/06',
-    hora: v('reunionHora') || '17:00 h',
+    fecha: reunionFmtFecha(v('reunionFecha')),
+    hora: reunionFmtHora(v('reunionHora')),
     lugar: v('reunionLugar') || 'Casa de la Libertad',
     direccion: v('reunionDireccion') || 'Dirección 0000',
     template: (document.querySelector('input[name="reunionTemplate"]:checked')?.value) || 't1'
@@ -152,52 +166,78 @@ function reunionSetZoom(v) {
   if (typeof scheduleSave === 'function') scheduleSave();
 }
 
-// Arrastre para reencuadrar la foto en el preview (delegado, sobrevive a re-render)
+// Reaplica el transform de la foto sin re-render completo (más fluido al arrastrar/pellizcar)
+function _reunionApplyTransform() {
+  const img = document.querySelector('#reunionScaler .placa-photo img');
+  if (!img) return;
+  const z = reunionImgZoom, m = (z - 1) / (2 * z) * 100;
+  img.style.transform = 'scale(' + z + ') translate(' + (reunionImgPos.x * m).toFixed(2) + '%, ' + (reunionImgPos.y * m).toFixed(2) + '%)';
+}
+function _reunionTouchDist(t) {
+  return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+}
+
+// Encuadre en el preview: arrastrar (mouse/1 dedo) para mover, pellizcar (2 dedos) para zoom.
 function bindReunionPan() {
   const scaler = document.getElementById('reunionScaler');
   if (!scaler || scaler._panBound) return;
   scaler._panBound = true;
   let dragging = false, lastX = 0, lastY = 0;
-  const down = e => {
-    if (!reunionImage || reunionImgZoom <= 1.001) return;
-    const photo = e.target.closest('.placa-photo');
-    if (!photo || !scaler.contains(photo)) return;
+  let pinching = false, pinchStartDist = 0, pinchStartZoom = 1;
+  const inPhoto = target => { const p = target && target.closest && target.closest('.placa-photo'); return (p && scaler.contains(p)) ? p : null; };
+
+  const start = e => {
+    if (!reunionImage) return;
+    if (e.touches && e.touches.length === 2 && inPhoto(e.target)) {
+      pinching = true; dragging = false;
+      pinchStartDist = _reunionTouchDist(e.touches);
+      pinchStartZoom = reunionImgZoom;
+      e.preventDefault();
+      return;
+    }
+    if (reunionImgZoom <= 1.001 || !inPhoto(e.target)) return;
     dragging = true;
     const p = e.touches ? e.touches[0] : e;
     lastX = p.clientX; lastY = p.clientY;
     e.preventDefault();
   };
   const move = e => {
+    if (pinching && e.touches && e.touches.length === 2) {
+      if (pinchStartDist > 0) {
+        reunionImgZoom = Math.max(1, Math.min(3, pinchStartZoom * _reunionTouchDist(e.touches) / pinchStartDist));
+        reunionImgPos.x = Math.max(-1, Math.min(1, reunionImgPos.x));
+        reunionImgPos.y = Math.max(-1, Math.min(1, reunionImgPos.y));
+        _reunionApplyTransform();
+        syncReunionImgControls();
+      }
+      e.preventDefault();
+      return;
+    }
     if (!dragging) return;
     const p = e.touches ? e.touches[0] : e;
-    const placa = document.getElementById('reunionPlaca');
-    const scale = (placa && placa.getBoundingClientRect().width / REUNION_W) || 0.33;
     const photo = scaler.querySelector('.placa-photo');
     if (!photo) return;
-    // px de pantalla → fracción del rango de pan del propio frame
-    const frameW = photo.getBoundingClientRect().width;   // ya escalado
-    const frameH = photo.getBoundingClientRect().height;
+    const r = photo.getBoundingClientRect();
     const z = reunionImgZoom;
-    const rangeX = frameW * (z - 1) / 2;  // px de pantalla de recorrido a cada lado
-    const rangeY = frameH * (z - 1) / 2;
+    const rangeX = r.width * (z - 1) / 2, rangeY = r.height * (z - 1) / 2;
     if (rangeX > 0) reunionImgPos.x = Math.max(-1, Math.min(1, reunionImgPos.x + (p.clientX - lastX) / rangeX));
     if (rangeY > 0) reunionImgPos.y = Math.max(-1, Math.min(1, reunionImgPos.y + (p.clientY - lastY) / rangeY));
     lastX = p.clientX; lastY = p.clientY;
-    // Reaplicar transform sin re-render completo (más fluido)
-    const img = photo.querySelector('img');
-    if (img) {
-      const m = (z - 1) / (2 * z) * 100;
-      img.style.transform = 'scale(' + z + ') translate(' + (reunionImgPos.x * m).toFixed(2) + '%, ' + (reunionImgPos.y * m).toFixed(2) + '%)';
-    }
+    _reunionApplyTransform();
     e.preventDefault();
   };
-  const up = () => { if (dragging) { dragging = false; if (typeof scheduleSave === 'function') scheduleSave(); } };
-  scaler.addEventListener('mousedown', down);
-  scaler.addEventListener('touchstart', down, { passive: false });
+  const end = e => {
+    const wasActive = dragging || pinching;
+    if (pinching && (!e.touches || e.touches.length < 2)) pinching = false;
+    if (dragging && (!e.touches || e.touches.length === 0)) dragging = false;
+    if (wasActive && !dragging && !pinching && typeof scheduleSave === 'function') scheduleSave();
+  };
+  scaler.addEventListener('mousedown', start);
+  scaler.addEventListener('touchstart', start, { passive: false });
   window.addEventListener('mousemove', move);
   window.addEventListener('touchmove', move, { passive: false });
-  window.addEventListener('mouseup', up);
-  window.addEventListener('touchend', up);
+  window.addEventListener('mouseup', end);
+  window.addEventListener('touchend', end);
 }
 
 // Escala la placa 1080×1350 para que entre en el ancho disponible del preview
@@ -248,6 +288,36 @@ function reunionRemoveImage() {
   if (inp) inp.value = '';
   renderReunionPreview();
   if (typeof scheduleSave === 'function') scheduleSave();
+}
+// Volver la foto a su encuadre original (zoom 100%, centrada) sin re-subirla
+function reunionResetFraming() {
+  reunionImgZoom = 1;
+  reunionImgPos = { x: 0, y: 0 };
+  renderReunionPreview();
+  if (typeof scheduleSave === 'function') scheduleSave();
+}
+
+/* ─── Recordar dirección por ciudad ─── */
+const REUNION_DIRS_KEY = 'lla_reunion_dirs_v1';
+function _reunionGetDirs() {
+  try { return JSON.parse(localStorage.getItem(REUNION_DIRS_KEY) || '{}'); } catch { return {}; }
+}
+// Guarda la dirección tipeada bajo la ciudad actual (ignora el placeholder)
+function reunionRememberDir() {
+  const city = (document.getElementById('cityInput')?.value || '').trim();
+  const dir = (document.getElementById('reunionDireccion')?.value || '').trim();
+  if (!city || !dir || dir === 'Dirección 0000') return;
+  const dirs = _reunionGetDirs();
+  dirs[city] = dir;
+  try { localStorage.setItem(REUNION_DIRS_KEY, JSON.stringify(dirs)); } catch {}
+}
+// Al cambiar de ciudad (selectCity): carga la dirección recordada de esa ciudad,
+// o limpia el campo si no hay ninguna (evita arrastrar la dirección de otra ciudad).
+function reunionOnCityChange(city) {
+  const el = document.getElementById('reunionDireccion');
+  if (!el) return;
+  const dirs = _reunionGetDirs();
+  el.value = dirs[city] || '';
 }
 
 // ─── Export a JPG 2160×2700 (2× para HD de WhatsApp) ───
@@ -301,8 +371,19 @@ function setReunionFraming(f) {
 
 // ─── Init ───
 function initReunion() {
-  const bind = id => { const el = document.getElementById(id); if (el) el.addEventListener('input', () => { renderReunionPreview(); if (typeof scheduleSave === 'function') scheduleSave(); }); };
+  const bind = id => {
+    const el = document.getElementById(id);
+    if (el) {
+      // date/time disparan 'change'; text 'input' — escuchamos ambos
+      const h = () => { renderReunionPreview(); if (typeof scheduleSave === 'function') scheduleSave(); };
+      el.addEventListener('input', h);
+      el.addEventListener('change', h);
+    }
+  };
   ['reunionFecha', 'reunionHora', 'reunionLugar', 'reunionDireccion'].forEach(bind);
+  // Recordar la dirección por ciudad al tipear
+  const dirEl = document.getElementById('reunionDireccion');
+  if (dirEl) dirEl.addEventListener('input', reunionRememberDir);
   document.querySelectorAll('input[name="reunionTemplate"]').forEach(r => {
     r.addEventListener('change', () => { renderReunionPreview(); if (typeof scheduleSave === 'function') scheduleSave(); });
   });

@@ -550,11 +550,11 @@ Asimismo, se adjunta como Anexo I el desarrollo de fundamentos técnicos, juríd
         <div class="reunion-field-row">
           <div class="field-group">
             <label>Fecha</label>
-            <input type="text" id="reunionFecha" placeholder="22/06" autocomplete="off" value="22/06">
+            <input type="date" id="reunionFecha">
           </div>
           <div class="field-group">
             <label>Hora</label>
-            <input type="text" id="reunionHora" placeholder="17:00 h" autocomplete="off" value="17:00 h">
+            <input type="time" id="reunionHora">
           </div>
         </div>
         <div class="field-group">
@@ -590,10 +590,13 @@ Asimismo, se adjunta como Anexo I el desarrollo de fundamentos técnicos, juríd
         <div id="reunionImgControls" style="display:none">
           <div class="reunion-zoom-row">
             <label style="margin:0">Zoom</label>
+            <button type="button" class="reunion-reframe-btn" onclick="reunionResetFraming()" title="Volver la foto al encuadre original">Reencuadrar</button>
+          </div>
+          <div class="reunion-zoom-slider-row">
+            <input type="range" id="reunionZoom" min="100" max="300" value="100" oninput="reunionSetZoom(this.value)">
             <span id="reunionZoomVal" class="reunion-zoom-val">100%</span>
           </div>
-          <input type="range" id="reunionZoom" min="100" max="300" value="100" oninput="reunionSetZoom(this.value)">
-          <p class="reunion-hint">Arrastrá la foto en la vista previa para reencuadrarla.</p>
+          <p class="reunion-hint">Arrastrá la foto en la vista previa para moverla. En el celular, pellizcá para hacer zoom.</p>
         </div>
         <p class="reunion-hint reunion-nofoto-hint">Si no subís foto, la placa muestra el águila de LLA.</p>
       </div>

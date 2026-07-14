@@ -1561,6 +1561,8 @@ function selectCity(city) {
   document.getElementById('cityInput').value = city;
   document.getElementById('cityBtnCurrent').textContent = city;
   closeCityDrawer();
+  // Modo Reunión: cargar la dirección recordada de esta ciudad (si hay)
+  if (typeof reunionOnCityChange === 'function') reunionOnCityChange(city);
   updatePreview();
   // Pulse animation en el nombre de ciudad del documento
   const docCity = document.getElementById('docCityName');
