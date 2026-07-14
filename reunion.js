@@ -250,10 +250,11 @@ function reunionRemoveImage() {
   if (typeof scheduleSave === 'function') scheduleSave();
 }
 
-// ─── Export a JPG 1080×1350 (html2canvas a escala real) ───
+// ─── Export a JPG 2160×2700 (2× para HD de WhatsApp) ───
+const REUNION_EXPORT_SCALE = 2; // 1080×1350 → 2160×2700
 async function exportReunion() {
   const d = reunionFields();
-  if (typeof showLoading === 'function') showLoading('Generando placa 1080×1350...');
+  if (typeof showLoading === 'function') showLoading('Generando placa HD 2160×2700...');
   // Contenedor de render a tamaño REAL, offscreen (sin el transform del preview)
   const stage = document.createElement('div');
   stage.style.cssText = 'position:fixed;left:-99999px;top:0;width:' + REUNION_W + 'px;height:' + REUNION_H + 'px;';
@@ -267,9 +268,8 @@ async function exportReunion() {
     // Esperar a que la fuente y las imágenes internas carguen
     if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch {} }
     await Promise.all(Array.from(placa.querySelectorAll('img')).map(img => img.complete ? Promise.resolve() : new Promise(r => { img.onload = img.onerror = r; })));
-    const canvas = await html2canvas(placa, { width: REUNION_W, height: REUNION_H, scale: 1, backgroundColor: null, useCORS: true, logging: false });
-    const mobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', mobile ? 0.9 : 0.95));
+    const canvas = await html2canvas(placa, { width: REUNION_W, height: REUNION_H, scale: REUNION_EXPORT_SCALE, backgroundColor: null, useCORS: true, logging: false });
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
     const cityClean = (d.ciudad || 'ciudad').replace(/[^\w áéíóúñ-]/gi, '').trim().replace(/\s+/g, '-');
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -278,7 +278,7 @@ async function exportReunion() {
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 30000);
     if (typeof logActivity === 'function') logActivity('export_reunion', { city: d.ciudad });
-    if (typeof showToast === 'function') showToast('✓ Placa lista (1080×1350)', 'success', 3000);
+    if (typeof showToast === 'function') showToast('✓ Placa HD lista (2160×2700)', 'success', 3000);
   } catch (err) {
     console.error('Export placa falló:', err);
     if (typeof showToast === 'function') showToast('No se pudo generar la placa: ' + (err.message || err), 'error', 5000);

@@ -3165,7 +3165,8 @@ body.mode-reunion .topbar .btn-only-membrete { display: none !important; }
   display: flex; align-items: center; gap: 26px;
   background: #fff; color: #2a1550;
   border-radius: 28px; padding: 26px 34px;
-  box-shadow: 0 16px 40px rgba(0,0,0,0.28);
+  /* sombra chica y nítida: blur grande banda feo en html2canvas al exportar */
+  box-shadow: 0 6px 14px rgba(10,4,24,0.22);
   width: 100%;
 }
 .placa-pill-date, .placa-pill-time { font-size: 52px; font-weight: 800; letter-spacing: -0.01em; white-space: nowrap; }
@@ -3174,7 +3175,7 @@ body.mode-reunion .topbar .btn-only-membrete { display: none !important; }
 .placa-pill-place strong { display: block; font-weight: 800; color: #2a1550; font-size: 24px; }
 
 /* Foto */
-.placa-photo { width: 100%; border-radius: 28px; overflow: hidden; box-shadow: 0 20px 48px rgba(0,0,0,0.32); }
+.placa-photo { width: 100%; border-radius: 28px; overflow: hidden; box-shadow: 0 8px 18px rgba(10,4,24,0.28); }
 .placa-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .placa-photo--empty {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
