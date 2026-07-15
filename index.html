@@ -790,15 +790,27 @@ Asimismo, se adjunta como Anexo I el desarrollo de fundamentos técnicos, juríd
 </aside>
 
 <!-- STATUS BAR -->
-<div class="status-bar">
-  <span><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Herramienta Partidaria LLA 2026</span>
-  <span>·</span>
-  <span>Fuente: Montserrat</span>
-  <span>·</span>
-  <span>Formato: A4 (210 × 297 mm)</span>
-  <span>·</span>
-  <span id="statusCity">Ciudad: General Roca</span>
-</div>
+<!-- FOOTER -->
+<footer class="app-footer">
+  <div class="app-footer-inner">
+    <div class="app-footer-brand">
+      <img src="LLA BLANCO.png" alt="La Libertad Avanza" class="app-footer-eagle">
+      <span class="app-footer-name">La Libertad Avanza <em>Río Negro</em></span>
+    </div>
+    <nav class="app-footer-links" aria-label="Accesos rápidos">
+      <button type="button" onclick="switchMode('membrete'); window.scrollTo({top:0,behavior:'smooth'})">Nota</button>
+      <button type="button" onclick="switchMode('comunicado'); window.scrollTo({top:0,behavior:'smooth'})">Comunicado</button>
+      <button type="button" onclick="switchMode('reunion'); window.scrollTo({top:0,behavior:'smooth'})">Reunión</button>
+      <button type="button" onclick="openDraftsDrawer()">Borradores</button>
+    </nav>
+    <div class="app-footer-divider" role="presentation"></div>
+    <div class="app-footer-bottom">
+      <span>© 2026 La Libertad Avanza · Río Negro</span>
+      <span class="app-footer-meta">Formato A4 (210 × 297 mm) · <span id="statusCity">Ciudad: General Roca</span></span>
+      <span class="app-footer-dev">Desarrollado por <strong>Josias Amaya</strong></span>
+    </div>
+  </div>
+</footer>
 
 <script src="app.js"></script>
 <script src="reunion.js"></script>
