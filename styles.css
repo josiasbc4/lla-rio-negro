@@ -1733,6 +1733,25 @@ button:focus-visible, .btn:focus-visible, .city-btn:focus-visible {
 }
 
 /* Indicador de páginas (visible cuando el doc desborda A4) */
+/* Marca de corte de página sobre la hoja continua. Se dibuja donde el PDF corta
+   (misma paginación) y se excluye del export vía data-html2canvas-ignore. */
+.doc-page-break {
+  position: absolute; left: 0; right: 0;
+  border-top: 2px dashed rgba(123,63,160,0.45);
+  pointer-events: none; z-index: 4;
+}
+.doc-page-break::after {
+  content: attr(data-label);
+  position: absolute; right: 10px; top: 0;
+  transform: translateY(-50%);
+  background: #7b3fa0; color: #fff;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 8px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+@media print { .doc-page-break { display: none; } }
+
 .page-indicator {
   display: none;
   position: absolute;

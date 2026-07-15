@@ -2472,6 +2472,10 @@ function bindInlineEditing() {
       txt = htmlToMarkdown(body.innerHTML).trim();
     }
     document.getElementById('bodyText').value = txt;
+    // Recalcular cortes de página mientras se escribe en el canvas (debounced:
+    // paginateBody mide layout y correrlo por tecla trabaría el tipeo)
+    clearTimeout(body._pgTimer);
+    body._pgTimer = setTimeout(detectPageCount, 150);
   });
 
   const sig = document.getElementById('docSignerLabel');
@@ -2511,11 +2515,37 @@ const A4_PX = 1123; // Alto A4 a 96dpi
 const A4_PX_W = 794;
 
 // Detecta cuántas páginas ocupa el documento actual y actualiza el indicador
+// Dibuja las marcas de corte sobre la hoja continua, en el MISMO lugar donde el
+// PDF va a cortar (recibe el resultado de paginateBody para no re-medir el layout).
+// Los marcadores llevan data-html2canvas-ignore → no salen en el PDF/JPG exportado.
+function renderPageBreaks(pages) {
+  const doc = document.getElementById('document-preview');
+  if (!doc) return;
+  doc.querySelectorAll('.doc-page-break').forEach(n => n.remove());
+  if (!document.body.classList.contains('mode-membrete')) return;
+  if (!pages || pages.length < 2) return;
+  const docRect = doc.getBoundingClientRect();
+  const scale = (docRect.width / 794) || 1; // el preview se muestra escalado
+  for (let i = 1; i < pages.length; i++) {
+    const first = pages[i][0];
+    if (!first) continue;
+    const top = (first.getBoundingClientRect().top - docRect.top) / scale;
+    const m = document.createElement('div');
+    m.className = 'doc-page-break';
+    m.setAttribute('data-html2canvas-ignore', 'true');
+    m.dataset.label = 'Página ' + (i + 1);
+    m.style.top = Math.round(top) + 'px';
+    doc.appendChild(m);
+  }
+}
+
 function detectPageCount() {
   const el = document.getElementById('document-preview');
   if (!el) return 1;
-  const totalH = el.scrollHeight;
-  const pages = Math.max(1, Math.ceil(totalH / A4_PX));
+  // Fuente única de verdad: la misma paginación que usa el export (paginateBody).
+  // Antes se estimaba con scrollHeight/A4_PX y no coincidía con el PDF.
+  const pg = (typeof paginateBody === 'function') ? paginateBody() : null;
+  const pages = pg ? Math.max(1, pg.length) : Math.max(1, Math.ceil(el.scrollHeight / A4_PX));
   const ind = document.getElementById('pageIndicator');
   if (ind) {
     if (pages > 1) {
@@ -2525,6 +2555,7 @@ function detectPageCount() {
       ind.classList.remove('show');
     }
   }
+  renderPageBreaks(pg);
   return pages;
 }
 
@@ -2542,8 +2573,19 @@ function paginateBody() {
   const padTop = parseFloat(bodyStyle.paddingTop) || 0;
   const padBot = parseFloat(bodyStyle.paddingBottom) || 0;
   const available = A4_PX - headerH - footerH - padTop - padBot - 24; // 24px safety margin
-  // Tomar los hijos del body en orden
-  const children = Array.from(bodyEl.children).filter(c => !c.classList.contains('page-break-marker'));
+  // Unidades paginables, en orden. Los párrafos del cuerpo viven UN NIVEL MÁS
+  // ADENTRO (dentro de #docBodyBlocks, el contenteditable), así que hay que
+  // aplanarlos: si no, el cuerpo entero es un bloque indivisible y el export lo
+  // mete todo en una página recortándolo (se perdía texto en notas largas).
+  const children = [];
+  Array.from(bodyEl.children).forEach(c => {
+    if (c.classList.contains('page-break-marker')) return;
+    if (c.classList.contains('doc-text-blocks')) {
+      Array.from(c.children).forEach(p => children.push(p));
+    } else {
+      children.push(c);
+    }
+  });
   if (!children.length) return [[]];
   // Pre-calcular alturas (offsetHeight + margin)
   const heights = children.map(c => {
@@ -2617,15 +2659,32 @@ async function captureAllPages(html2canvasOptions) {
   if (!pages || pages.length <= 1) return null; // single page → usa flujo normal
   const el = document.getElementById('document-preview');
   const bodyEl = el.querySelector('.doc-body');
+  const blocksEl = bodyEl.querySelector('.doc-text-blocks');
   const originalChildren = Array.from(bodyEl.children);
+  const originalParagraphs = blocksEl ? Array.from(blocksEl.children) : [];
   const originalMinHeight = el.style.minHeight;
   const originalHeight = el.style.height;
   const canvases = [];
   try {
     for (let i = 0; i < pages.length; i++) {
-      // Vaciar body y meter solo los bloques de esta página
+      // Vaciar body y meter solo los bloques de esta página. Los párrafos vienen
+      // aplanados desde paginateBody, así que los consecutivos se re-envuelven en
+      // un .doc-text-blocks para conservar el estilo del wrapper.
       while (bodyEl.firstChild) bodyEl.removeChild(bodyEl.firstChild);
-      pages[i].forEach(c => bodyEl.appendChild(c));
+      let wrap = null;
+      pages[i].forEach(c => {
+        if (c.classList.contains('doc-text-block')) {
+          if (!wrap) {
+            wrap = document.createElement('div');
+            wrap.className = 'doc-text-blocks';
+            bodyEl.appendChild(wrap);
+          }
+          wrap.appendChild(c);
+        } else {
+          wrap = null;
+          bodyEl.appendChild(c);
+        }
+      });
       el.style.minHeight = A4_PX + 'px';
       el.style.height = A4_PX + 'px';
       // Forzar reflow y esperar 2 frames para que el layout se estabilice
@@ -2637,8 +2696,13 @@ async function captureAllPages(html2canvasOptions) {
       canvases.push(canvas);
     }
   } finally {
-    // Restaurar TODO el body original
+    // Restaurar la estructura original: los párrafos vuelven DENTRO de
+    // #docBodyBlocks (el contenteditable), y los wrappers temporales se descartan.
     while (bodyEl.firstChild) bodyEl.removeChild(bodyEl.firstChild);
+    if (blocksEl) {
+      while (blocksEl.firstChild) blocksEl.removeChild(blocksEl.firstChild);
+      originalParagraphs.forEach(p => blocksEl.appendChild(p));
+    }
     originalChildren.forEach(c => bodyEl.appendChild(c));
     el.style.minHeight = originalMinHeight;
     el.style.height = originalHeight;
