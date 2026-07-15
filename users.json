@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-15T03:35:40.157Z",
+  "updatedAt": "2026-07-15T03:35:42.718Z",
   "users": [
     {
       "name": "Josias Amaya",
@@ -10,10 +10,6 @@
     {
       "name": "Enzo Fullone Token Senador",
       "hash": "2516cc23cbd31af94092a27af2f6d1f69bd803e3dede8d17dcce01e4b09a813a"
-    },
-    {
-      "name": "Luis Carilao",
-      "hash": "c1f101a6ea2a664f544ee04eb40e7e87fb32c979d75024b8b1fc75462843927f"
     }
   ],
   "sheetUrl": "https://script.google.com/macros/s/AKfycbxOCMRs1cTVoaegIu8avsflTHnCvim27PbRm_JBsY_1YuxDusDTx_1NAAbFG44t96-pOw/exec",
