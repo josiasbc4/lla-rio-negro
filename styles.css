@@ -3276,20 +3276,13 @@ ion-datetime {
   font-size: 10px; font-weight: 800; letter-spacing: 0.14em;
   text-transform: uppercase; color: #fff; line-height: 1;
 }
+/* T3: solo el logo, sin caja (hereda ancho/posición/fórmula de la ciudad del base) */
 .placa-brand--boxed {
   --lw: 187px; /* 340px − 45% */
-  width: calc(var(--lw) + 64px);
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 24px;
-  padding: 26px 32px 52px;
   align-self: flex-end;
+  padding-bottom: 26px;
 }
-.placa-brand--boxed .placa-brand-city {
-  left: calc(32px + var(--lw) * 0.8417);
-  top: calc(26px + var(--lw) * 0.4412 + 4px);
-  font-size: 8px;
-}
+.placa-brand--boxed .placa-brand-city { font-size: 8px; }
 
 /* Tag "Reunión" */
 .placa-tag {
