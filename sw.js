@@ -1,6 +1,6 @@
 // Service Worker — Herramienta Partidaria LLA Río Negro
 // v15 — network-first para HTML/JSON/JS/CSS-propio, cache-first para libs/imágenes
-const CACHE = 'lla-membrete-v15';
+const CACHE = 'lla-membrete-v16';
 const ASSETS = [
   './',
   './index.html',
@@ -17,7 +17,9 @@ const ASSETS = [
   'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-  'https://cdn.jsdelivr.net/gh/lit/dist@3/all/lit-all.min.js'
+  'https://cdn.jsdelivr.net/gh/lit/dist@3/all/lit-all.min.js',
+  'https://cdn.jsdelivr.net/npm/@ionic/core@8/css/core.css',
+  'https://cdn.jsdelivr.net/npm/@ionic/core@8/dist/ionic/ionic.esm.js'
 ];
 
 self.addEventListener('install', (event) => {

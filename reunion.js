@@ -25,17 +25,18 @@ let reunionImgPos = { x: 0, y: 0 };    // -1..1 en cada eje (pan dentro del marg
 function reunionEsc(s) {
   return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
-// Formatea el value del <input type=date> (YYYY-MM-DD) a "DD/MM".
-// Si el value ya es texto libre (drafts viejos), lo devuelve tal cual.
+// Formatea el value del ion-datetime (ISO: "2026-06-22" o "2026-06-22T17:30:00")
+// a "DD/MM". Si el value es texto libre (drafts viejos), lo devuelve tal cual.
 function reunionFmtFecha(raw) {
   if (!raw) return '22/06';
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
   return m ? (m[3] + '/' + m[2]) : raw;
 }
-// Formatea el value del <input type=time> (HH:MM) a "HH:MM h" (formato del deck).
+// Formatea el value del ion-datetime de hora ("17:30", "17:30:00" o ISO completo)
+// a "HH:MM h" (formato del deck).
 function reunionFmtHora(raw) {
   if (!raw) return '17:00 h';
-  const m = /^(\d{2}):(\d{2})$/.exec(raw);
+  const m = /(?:T|^)(\d{2}):(\d{2})/.exec(raw);
   return m ? (m[1] + ':' + m[2] + ' h') : raw;
 }
 
@@ -374,13 +375,21 @@ function initReunion() {
   const bind = id => {
     const el = document.getElementById(id);
     if (el) {
-      // date/time disparan 'change'; text 'input' — escuchamos ambos
+      // text dispara 'input'; ion-datetime dispara 'ionChange' — escuchamos todos
       const h = () => { renderReunionPreview(); if (typeof scheduleSave === 'function') scheduleSave(); };
       el.addEventListener('input', h);
       el.addEventListener('change', h);
+      el.addEventListener('ionChange', h);
     }
   };
   ['reunionFecha', 'reunionHora', 'reunionLugar', 'reunionDireccion'].forEach(bind);
+  // Cuando Ionic termina de definir ion-datetime (carga lazy por CDN),
+  // re-renderizar por si el draft restauró valores antes del upgrade
+  if (window.customElements && customElements.whenDefined) {
+    customElements.whenDefined('ion-datetime').then(() => {
+      if (document.body.classList.contains('mode-reunion')) renderReunionPreview();
+    }).catch(() => {});
+  }
   // Recordar la dirección por ciudad al tipear
   const dirEl = document.getElementById('reunionDireccion');
   if (dirEl) dirEl.addEventListener('input', reunionRememberDir);

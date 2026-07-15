@@ -15,6 +15,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="tailwind.css">
+<!-- Ionic (solo ion-datetime: calendario y hora del modo Reunión) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core@8/css/core.css">
+<script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core@8/dist/ionic/ionic.esm.js"></script>
 </head>
 <body class="mode-membrete">
 
@@ -547,15 +550,13 @@ Asimismo, se adjunta como Anexo I el desarrollo de fundamentos técnicos, juríd
         <span class="section-chevron"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>
       </div>
       <div class="section-body">
-        <div class="reunion-field-row">
-          <div class="field-group">
-            <label>Fecha</label>
-            <input type="date" id="reunionFecha">
-          </div>
-          <div class="field-group">
-            <label>Hora</label>
-            <input type="time" id="reunionHora">
-          </div>
+        <div class="field-group">
+          <label>Fecha</label>
+          <ion-datetime id="reunionFecha" presentation="date" first-day-of-week="1" locale="es-AR"></ion-datetime>
+        </div>
+        <div class="field-group">
+          <label>Hora</label>
+          <ion-datetime id="reunionHora" presentation="time" locale="es-AR" hour-cycle="h23"></ion-datetime>
         </div>
         <div class="field-group">
           <label>Lugar</label>
@@ -579,8 +580,8 @@ Asimismo, se adjunta como Anexo I el desarrollo de fundamentos técnicos, juríd
       <div class="section-body">
         <input type="file" id="reunionImageInput" accept="image/*" style="display:none" onchange="reunionHandleImage(this)">
         <div class="reunion-photo-actions">
-          <button type="button" class="btn btn-glass" style="flex:1" onclick="document.getElementById('reunionImageInput').click()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <button type="button" class="px-4 py-2 rounded-md border border-neutral-300 bg-neutral-100 text-neutral-500 text-sm hover:-translate-y-1 transform transition duration-200 hover:shadow-md" style="flex:1" onclick="document.getElementById('reunionImageInput').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;display:inline;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Subir foto
           </button>
           <button type="button" class="btn btn-glass admin-btn-danger" onclick="reunionRemoveImage()" title="Quitar foto">
@@ -590,7 +591,7 @@ Asimismo, se adjunta como Anexo I el desarrollo de fundamentos técnicos, juríd
         <div id="reunionImgControls" style="display:none">
           <div class="reunion-zoom-row">
             <label style="margin:0">Zoom</label>
-            <button type="button" class="reunion-reframe-btn" onclick="reunionResetFraming()" title="Volver la foto al encuadre original">Reencuadrar</button>
+            <button type="button" class="px-4 py-2 rounded-md border border-neutral-300 bg-neutral-100 text-neutral-500 text-sm hover:-translate-y-1 transform transition duration-200 hover:shadow-md" onclick="reunionResetFraming()" title="Volver la foto al encuadre original">Reencuadrar</button>
           </div>
           <div class="reunion-zoom-slider-row">
             <input type="range" id="reunionZoom" min="100" max="300" value="100" oninput="reunionSetZoom(this.value)">
@@ -798,10 +799,10 @@ Asimismo, se adjunta como Anexo I el desarrollo de fundamentos técnicos, juríd
       <span class="app-footer-name">La Libertad Avanza <em>Río Negro</em></span>
     </div>
     <nav class="app-footer-links" aria-label="Accesos rápidos">
-      <button type="button" onclick="switchMode('membrete'); window.scrollTo({top:0,behavior:'smooth'})">Nota</button>
-      <button type="button" onclick="switchMode('comunicado'); window.scrollTo({top:0,behavior:'smooth'})">Comunicado</button>
-      <button type="button" onclick="switchMode('reunion'); window.scrollTo({top:0,behavior:'smooth'})">Reunión</button>
-      <button type="button" onclick="openDraftsDrawer()">Borradores</button>
+      <button type="button" class="px-4 py-2 rounded-md border border-neutral-300 bg-neutral-100 text-neutral-500 text-sm hover:-translate-y-1 transform transition duration-200 hover:shadow-md" onclick="switchMode('membrete'); window.scrollTo({top:0,behavior:'smooth'})">Nota</button>
+      <button type="button" class="px-4 py-2 rounded-md border border-neutral-300 bg-neutral-100 text-neutral-500 text-sm hover:-translate-y-1 transform transition duration-200 hover:shadow-md" onclick="switchMode('comunicado'); window.scrollTo({top:0,behavior:'smooth'})">Comunicado</button>
+      <button type="button" class="px-4 py-2 rounded-md border border-neutral-300 bg-neutral-100 text-neutral-500 text-sm hover:-translate-y-1 transform transition duration-200 hover:shadow-md" onclick="switchMode('reunion'); window.scrollTo({top:0,behavior:'smooth'})">Reunión</button>
+      <button type="button" class="px-4 py-2 rounded-md border border-neutral-300 bg-neutral-100 text-neutral-500 text-sm hover:-translate-y-1 transform transition duration-200 hover:shadow-md" onclick="openDraftsDrawer()">Borradores</button>
     </nav>
     <div class="app-footer-divider" role="presentation"></div>
     <div class="app-footer-bottom">
