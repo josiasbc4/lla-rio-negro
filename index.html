@@ -13,10 +13,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- Ionic (solo ion-datetime). Su CSS va ANTES que styles.css: core.css trae
+     body{background:var(--ion-background-color)} y pisaba nuestro fondo violeta -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core@8/css/core.css">
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="tailwind.css">
-<!-- Ionic (solo ion-datetime: calendario y hora del modo Reunión) -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core@8/css/core.css">
 <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core@8/dist/ionic/ionic.esm.js"></script>
 </head>
 <body class="mode-membrete">
