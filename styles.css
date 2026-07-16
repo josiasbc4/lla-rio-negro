@@ -94,7 +94,8 @@
 /* Rim especular compartido (pseudo con gradient-border + mask-composite).
    Solo en superficies SIN overflow propio (en scrollers el pseudo se va con el scroll). */
 .panel-section::before, .admin-section::before, .login-card::before,
-.toast::before, .modal::before, .mode-tabs::before, .admin-stat-card::after {
+.toast::before, .modal::before, .mode-tabs::before, .admin-stat-card::after,
+.landing-card::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -1437,15 +1438,133 @@ button:focus-visible, .btn:focus-visible, .city-btn:focus-visible {
 }
 
 /* ═══════════════ LOGIN GATE ═══════════════ */
+/* El gate ahora es una LANDING scrolleable: hero → formatos → pasos → login → footer.
+   Sigue siendo el overlay fijo que showApp() desvanece al iniciar sesión. */
 .login-gate {
   position: fixed; inset: 0; z-index: 9999;
   background: radial-gradient(1200px 600px at 50% 0%, rgba(123,63,160,0.55), transparent 60%),
               radial-gradient(1000px 500px at 50% 100%, rgba(90,45,130,0.45), transparent 60%),
               linear-gradient(135deg, #0a0418 0%, #1a0c33 40%, #14082a 100%);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 24px;
+  display: block;
   overflow-y: auto;
+  /* sin scroll-behavior:smooth acá: se pisa con el smooth programático del CTA */
 }
+
+/* ── HERO ── */
+.landing-hero {
+  min-height: 92dvh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; position: relative;
+  padding: 56px 24px 40px;
+}
+.landing-hero-eagle {
+  height: 96px; width: auto;
+  filter: drop-shadow(0 12px 34px rgba(123,63,160,0.5));
+  margin-bottom: 24px;
+}
+.landing-eyebrow {
+  font-size: 11px; font-weight: 800; letter-spacing: 0.28em;
+  text-transform: uppercase; color: #a66dd4; margin-bottom: 16px;
+}
+.landing-title {
+  font-size: clamp(34px, 6vw, 58px); font-weight: 900;
+  line-height: 1.05; letter-spacing: -0.01em; color: #fff;
+}
+.landing-sub {
+  max-width: 580px; margin-top: 18px;
+  font-size: clamp(14px, 2.2vw, 17px); line-height: 1.65;
+  color: rgba(255,255,255,0.72);
+}
+.landing-cta {
+  margin-top: 32px;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 15px 32px; border-radius: 999px; text-decoration: none;
+  background: linear-gradient(165deg, rgba(123,63,160,0.92), rgba(55,25,89,0.96));
+  color: #fff; font-weight: 800; font-size: 13px;
+  letter-spacing: 0.05em; text-transform: uppercase;
+  border: 1px solid rgba(255,255,255,0.22);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.30), 0 8px 24px rgba(55,25,89,0.55);
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+}
+.landing-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 12px 32px rgba(55,25,89,0.65);
+}
+.landing-scroll-cue {
+  position: absolute; bottom: 20px; left: 50%;
+  color: rgba(255,255,255,0.4);
+  animation: cueBob 2.2s ease-in-out infinite;
+}
+@keyframes cueBob {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, 8px); }
+}
+
+/* ── SECCIONES ── */
+.landing-modes, .landing-steps {
+  max-width: 1080px; margin: 0 auto;
+  padding: 64px 24px;
+}
+.landing-h2 {
+  text-align: center;
+  font-size: clamp(22px, 3.4vw, 30px); font-weight: 800;
+  color: #fff; margin-bottom: 36px;
+}
+
+/* Tarjetas de los 3 formatos (faux glass, mismo lenguaje que la app) */
+.landing-cards {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 22px;
+}
+.landing-card {
+  position: relative;
+  background: var(--lg-bg);
+  border-radius: 20px;
+  box-shadow: var(--lg-depth-soft);
+  padding: 16px 18px 22px;
+  text-align: center;
+  transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
+}
+.landing-card:hover {
+  transform: translateY(-4px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.20), inset -2px -4px 10px rgba(10,4,24,0.22),
+              0 0 0 1px rgba(0,0,0,0.18), 0 18px 40px rgba(10,4,24,0.55);
+}
+.landing-card-img {
+  border-radius: 12px; overflow: hidden;
+  margin-bottom: 16px;
+  box-shadow: 0 10px 26px rgba(0,0,0,0.35);
+}
+.landing-card-img img { width: 100%; display: block; }
+.landing-card h3 { font-size: 16px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+.landing-card p { font-size: 12.5px; line-height: 1.6; color: rgba(255,255,255,0.68); }
+
+/* Cómo funciona (1-2-3) */
+.landing-steps-grid {
+  list-style: none; padding: 0; margin: 0;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 26px;
+}
+.landing-step { text-align: center; }
+.landing-step-num {
+  width: 46px; height: 46px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 14px;
+  background: linear-gradient(165deg, rgba(123,63,160,0.92), rgba(55,25,89,0.96));
+  color: #fff; font-weight: 900; font-size: 19px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.30), 0 6px 16px rgba(55,25,89,0.5);
+}
+.landing-step h3 { font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+.landing-step p { font-size: 12.5px; line-height: 1.6; color: rgba(255,255,255,0.68); }
+
+/* Login como sección final de la landing */
+.landing-login {
+  display: flex; justify-content: center;
+  padding: 40px 24px 80px;
+}
+
+/* Footer de la landing (reusa .app-footer) */
+.landing-footer { margin-top: 0; }
 .login-card {
   position: relative;
   background: rgba(20,10,40,0.55);

@@ -39,8 +39,65 @@
   <div class="loading-subtext" id="loadingSubtext">Esto toma unos segundos…</div>
 </div>
 
-<!-- LOGIN GATE -->
-<div class="login-gate" id="loginGate" aria-modal="true" role="dialog">
+<!-- LANDING + LOGIN GATE (visible solo sin sesión; showApp() lo desvanece igual que antes) -->
+<div class="login-gate" id="loginGate">
+
+  <!-- HERO -->
+  <section class="landing-hero">
+    <img src="LLA BLANCO.png" alt="" class="landing-hero-eagle">
+    <div class="landing-eyebrow">La Libertad Avanza · Río Negro</div>
+    <h1 class="landing-title">Herramienta oficial<br>de comunicación</h1>
+    <p class="landing-sub">Notas con membrete, comunicados de prensa y placas de invitación con la identidad partidaria — listas para imprimir o difundir.</p>
+    <a class="landing-cta" href="#landingLogin" onclick="document.getElementById('landingLogin').scrollIntoView(); document.getElementById('codeInput').focus({preventScroll:true}); return false;">Ingresar con mi código</a>
+    <div class="landing-scroll-cue" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </section>
+
+  <!-- LOS 3 FORMATOS -->
+  <section class="landing-modes">
+    <h2 class="landing-h2">Tres formatos, una identidad</h2>
+    <div class="landing-cards">
+      <article class="landing-card">
+        <div class="landing-card-img"><img src="landing-nota.jpg" alt="Nota oficial con membrete de LLA Río Negro" loading="lazy"></div>
+        <h3>Nota oficial</h3>
+        <p>Membrete A4 con destinatario, cuerpo y firma. Se exporta en PDF o JPG, con paginación automática.</p>
+      </article>
+      <article class="landing-card">
+        <div class="landing-card-img"><img src="landing-comunicado.jpg" alt="Comunicado de prensa de LLA Río Negro" loading="lazy"></div>
+        <h3>Comunicado de prensa</h3>
+        <p>Banda violeta, título y cuerpo. PDF con texto real e imagen lista para Instagram.</p>
+      </article>
+      <article class="landing-card">
+        <div class="landing-card-img"><img src="landing-reunion.jpg" alt="Placa de invitación a reunión de LLA" loading="lazy"></div>
+        <h3>Invitación a reunión</h3>
+        <p>Placas 1080×1350 en HD con fecha, hora y lugar. Listas para WhatsApp e Instagram.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- CÓMO FUNCIONA -->
+  <section class="landing-steps">
+    <h2 class="landing-h2">Cómo funciona</h2>
+    <ol class="landing-steps-grid">
+      <li class="landing-step">
+        <span class="landing-step-num">1</span>
+        <h3>Elegí el formato</h3>
+        <p>Nota, comunicado o placa de reunión — cada uno con su plantilla oficial.</p>
+      </li>
+      <li class="landing-step">
+        <span class="landing-step-num">2</span>
+        <h3>Completá los datos</h3>
+        <p>Ciudad, fecha y contenido. La vista previa se arma sola, en tiempo real.</p>
+      </li>
+      <li class="landing-step">
+        <span class="landing-step-num">3</span>
+        <h3>Exportá y difundí</h3>
+        <p>PDF A4, JPG o imagen para redes en alta calidad, en un toque.</p>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ACCESO -->
+  <section class="landing-login" id="landingLogin">
   <div class="login-card">
     <img src="data:image/png;base64,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" alt="La Libertad Avanza" class="login-logo">
     <h1>Herramienta Partidaria LLA</h1>
@@ -69,6 +126,22 @@
       Cada código es personal e intransferible — el uso queda registrado.
     </div>
   </div>
+  </section>
+
+  <!-- FOOTER (landing) -->
+  <footer class="app-footer landing-footer">
+    <div class="app-footer-inner">
+      <div class="app-footer-brand">
+        <img src="LLA BLANCO.png" alt="La Libertad Avanza" class="app-footer-eagle">
+        <span class="app-footer-name">La Libertad Avanza <em>Río Negro</em></span>
+      </div>
+      <div class="app-footer-divider" role="presentation"></div>
+      <div class="app-footer-bottom">
+        <span>© 2026 La Libertad Avanza · Río Negro</span>
+        <span class="app-footer-dev">Desarrollado por <strong>Josias Amaya</strong></span>
+      </div>
+    </div>
+  </footer>
 </div>
 
 <!-- TOPBAR -->

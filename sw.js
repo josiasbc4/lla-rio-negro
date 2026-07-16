@@ -1,6 +1,6 @@
 // Service Worker — Herramienta Partidaria LLA Río Negro
-// v15 — network-first para HTML/JSON/JS/CSS-propio, cache-first para libs/imágenes
-const CACHE = 'lla-membrete-v16';
+// v17 — network-first para HTML/JSON/JS/CSS-propio, cache-first para libs/imágenes
+const CACHE = 'lla-membrete-v17';
 const ASSETS = [
   './',
   './index.html',
@@ -13,6 +13,9 @@ const ASSETS = [
   './LLA BLANCO.png',
   './LLA VIOLETA.png',
   './LLA LOGO.png',
+  './landing-nota.jpg',
+  './landing-comunicado.jpg',
+  './landing-reunion.jpg',
   './LLA EAGLE.png',
   'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
